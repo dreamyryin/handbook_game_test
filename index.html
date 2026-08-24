@@ -21,13 +21,12 @@
     <!-- 讀取 Python 自動生成的圖鑑資料 -->
     <script src="card_data.js"></script>
 
-    <!-- ⚡ Firebase 測試專案核心與模組引入 -->
+    <!-- ⚡ Firebase 測試專案核心與模組引入 (含記住帳號與自動同步) -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-app.js";
-        import { getAuth, signInWithPopup, GoogleAuthProvider, signOut } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-auth.js";
+        import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-auth.js";
         import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-firestore.js";
 
-        // 你的測試專案設定 (test-67c4a)
         const firebaseConfig = {
             apiKey: "AIzaSyDCTEj9NcX7D1H61axz5-ecSImG1WQqQB0",
             authDomain: "test-67c4a.firebaseapp.com",
@@ -44,13 +43,34 @@
         window.faAuth = auth;
         window.faDb = db;
 
+        // ⚡ 1. 網頁開啟時，自動偵測是否已經登入過 (不用再一直選帳號)
+        onAuthStateChanged(auth, async (user) => {
+            const btn = document.getElementById('btn-google-login');
+            if (user) {
+                // 已經登入過，按鈕變更狀態
+                if (btn) btn.innerText = `☁️ 已登入: ${user.displayName}`;
+                logMsg(`💚 歡迎回來，${user.displayName}！自動同步中...`);
+                // 登入狀態確認後，自動從雲端把最新進度抓下來 (方案 B)
+                await loadCloudData(user.uid);
+            } else {
+                // 沒登入過，保持原樣
+                if (btn) btn.innerText = `☁️ Google 登入與同步`;
+            }
+        });
+
+        // ☁️ 點擊登入按鈕的邏輯
         window.loginWithGoogleCloud = async () => {
+            // 如果已經登入過了，就不再彈出視窗
+            if (auth.currentUser) {
+                logMsg("✅ 您已經登入囉！遊戲會在背景自動同步。");
+                return;
+            }
+            
             const provider = new GoogleAuthProvider();
             try {
-                const result = await signInWithPopup(auth, provider);
-                const user = result.user;
-                logMsg(`💚 登入成功，歡迎 ${user.displayName}！`);
-                await loadCloudData(user.uid);
+                // 只有完全沒登入過才會跳出這個視窗
+                await signInWithPopup(auth, provider);
+                // 登入成功後，onAuthStateChanged 會自動接手後續的讀檔動作
             } catch (error) {
                 console.error(error);
                 logMsg("❌ Google 登入失敗！");
@@ -59,6 +79,7 @@
 
         let cloudSyncTimer = null;
 
+        // ☁️ 自動背景即時上傳至雲端 Firestore
         window.triggerAutoCloudSave = function() {
             const user = auth.currentUser;
             if (!user) return; 
@@ -81,6 +102,7 @@
             }, 1500); 
         };
 
+        // ☁️ 從雲端 Firestore 讀取存檔
         async function loadCloudData(uid) {
             try {
                 const docRef = doc(db, "game_saves", uid);
@@ -398,8 +420,8 @@
         <div class="modal-container" onclick="event.stopPropagation()">
             <div id="settings-menu">
                 <h3 style="margin:0 0 15px 0; color:#2c3e50;">⚙️ 設定</h3>
-                <!-- ☁️ Google 測試登入按鈕 -->
-                <button class="btn-action" style="background: linear-gradient(45deg, #4285F4, #34A853);" onclick="window.loginWithGoogleCloud()">☁️ Google 登入與同步</button>
+                <!-- ⚡ 加上 id="btn-google-login" 以便後台動態修改文字 -->
+                <button id="btn-google-login" class="btn-action" style="background: linear-gradient(45deg, #4285F4, #34A853);" onclick="window.loginWithGoogleCloud()">☁️ Google 登入與同步</button>
                 <button class="btn-action" onclick="showTransferMenu()">🔄 進度轉移 (引繼碼)</button>
                 <button class="btn-action" style="background: linear-gradient(45deg, #00acc1, #00bcd4);" onclick="showUpdateLog()">📜 版本更新日誌</button>
                 <button class="btn-action btn-special" onclick="showCredits()">📝 Credits</button>
@@ -685,7 +707,7 @@
         }
         function closeHelp() { document.getElementById('help-modal').style.display = 'none'; }
 
-        // --- 💾 存讀檔系統 (⚡ 完全修復任務讀取 Bug) ---
+        // --- 💾 存讀檔系統 (含背景上傳) ---
         function saveLocalData() {
             try {
                 const charList = ['solar', 'moon', 'whee', 'hwa'];
@@ -706,7 +728,6 @@
                 const compactSets = Array.from(claimedSets).map(s => setList.indexOf(s)).filter(i => i >= 0).join('-');
                 const compactGallery = galleryData.map(c => c.unlocked ? 1 : 0).join('');
                 
-                // 任務序列化
                 const mStr = currentMissionData ? btoa(encodeURIComponent(JSON.stringify(currentMissionData))) : "";
 
                 const permAutoFlag = isPermanentAutoMerge ? 1 : 0;
@@ -785,12 +806,11 @@
                     }
                 });
                 
-                // ⚡ 關鍵修復：直接讀取第 8 個欄位 (parts[8])，絕對不再用開頭字母瞎猜！
                 let missionLoaded = false;
                 if (parts.length > 8 && parts[8]) {
                     try {
                         let decodedStr = atob(parts[8]);
-                        try { decodedStr = decodeURIComponent(decodedStr); } catch(e) {} // 相容舊版
+                        try { decodedStr = decodeURIComponent(decodedStr); } catch(e) {} 
                         currentMissionData = JSON.parse(decodedStr);
                         missionLoaded = true;
                     } catch(err) {
@@ -798,7 +818,6 @@
                     }
                 }
 
-                // 如果存檔裡真的沒有任務，才動態產生
                 if (!missionLoaded) {
                     currentMissionData = generateMissionsForLevel(currentLevel);
                 }
@@ -866,7 +885,6 @@
             updateBoard();
         }
 
-        // --- ⚙️ 設定系統 (含 Credits) ⚙️ ---
         function openSettings() {
             document.getElementById('settings-menu').style.display = 'block';
             document.getElementById('settings-transfer').style.display = 'none';

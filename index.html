@@ -9,20 +9,25 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>MAMAMOO 合成 GAME</title>
     
+    <!-- Web App Manifest (Android/Chrome 專用) -->
     <link rel="manifest" href="manifest.json">
     
+    <!-- iOS Safari 專屬設定 -->
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="MAMAMOO合成">
     <link rel="apple-touch-icon" href="images/icon.jpg">
 
+    <!-- 讀取 Python 自動生成的圖鑑資料 -->
     <script src="card_data.js"></script>
 
+    <!-- ⚡ Firebase 測試專案核心與模組引入 -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-app.js";
         import { getAuth, signInWithPopup, GoogleAuthProvider, signOut } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-auth.js";
         import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-firestore.js";
 
+        // 你的測試專案設定 (test-67c4a)
         const firebaseConfig = {
             apiKey: "AIzaSyDCTEj9NcX7D1H61axz5-ecSImG1WQqQB0",
             authDomain: "test-67c4a.firebaseapp.com",
@@ -393,6 +398,7 @@
         <div class="modal-container" onclick="event.stopPropagation()">
             <div id="settings-menu">
                 <h3 style="margin:0 0 15px 0; color:#2c3e50;">⚙️ 設定</h3>
+                <!-- ☁️ Google 測試登入按鈕 -->
                 <button class="btn-action" style="background: linear-gradient(45deg, #4285F4, #34A853);" onclick="window.loginWithGoogleCloud()">☁️ Google 登入與同步</button>
                 <button class="btn-action" onclick="showTransferMenu()">🔄 進度轉移 (引繼碼)</button>
                 <button class="btn-action" style="background: linear-gradient(45deg, #00acc1, #00bcd4);" onclick="showUpdateLog()">📜 版本更新日誌</button>
@@ -679,7 +685,7 @@
         }
         function closeHelp() { document.getElementById('help-modal').style.display = 'none'; }
 
-        // --- 💾 存讀檔系統 (⚡ 絕對確保 mStr 完整寫入與解析) ---
+        // --- 💾 存讀檔系統 (⚡ 完全修復任務讀取 Bug) ---
         function saveLocalData() {
             try {
                 const charList = ['solar', 'moon', 'whee', 'hwa'];
@@ -779,18 +785,20 @@
                     }
                 });
                 
-                // ⚡ 關鍵修復：確實從 parts 中找出以 'ey' 開頭的 Base64 任務字串並還原！
+                // ⚡ 關鍵修復：直接讀取第 8 個欄位 (parts[8])，絕對不再用開頭字母瞎猜！
                 let missionLoaded = false;
-                parts.forEach(p => {
-                    if (p && p.startsWith('ey')) {
-                        try {
-                            currentMissionData = JSON.parse(decodeURIComponent(atob(p)));
-                            missionLoaded = true;
-                        } catch(err) {}
+                if (parts.length > 8 && parts[8]) {
+                    try {
+                        let decodedStr = atob(parts[8]);
+                        try { decodedStr = decodeURIComponent(decodedStr); } catch(e) {} // 相容舊版
+                        currentMissionData = JSON.parse(decodedStr);
+                        missionLoaded = true;
+                    } catch(err) {
+                        console.error("任務讀取失敗", err);
                     }
-                });
+                }
 
-                // 如果存檔裡沒有任務，才動態產生
+                // 如果存檔裡真的沒有任務，才動態產生
                 if (!missionLoaded) {
                     currentMissionData = generateMissionsForLevel(currentLevel);
                 }

@@ -395,6 +395,21 @@
         <img id="enlarged-img" src="" style="max-width: 90%; max-height: 85%; object-fit: contain; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.5);" onclick="event.stopPropagation()">
         <div style="position: absolute; top: 15px; right: 20px; color: white; font-size: 2.5rem; font-weight: bold; cursor: pointer; text-shadow: 0 2px 4px rgba(0,0,0,0.5);">&times;</div>
     </div>
+
+    <!-- 🚨 GM 緊急維護畫面 (預設是關閉的 display:none) -->
+    <div id="maintenance-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(192, 57, 43, 0.95); z-index:99999; flex-direction:column; justify-content:center; align-items:center; color:white; text-align:center; padding:20px; box-sizing:border-box;">
+        <div style="font-size: 3rem; margin-bottom: 10px;">🛠️</div>
+        <h2 style="margin: 0 0 10px 0; font-size: 1.8rem;">GM 正在緊急維護中！</h2>
+        <p style="font-size: 1rem; line-height: 1.6; max-width: 320px; margin-bottom: 20px;">
+            管理員正在修改程式碼與測試新功能中。<br>
+            為了避免存檔衝突或資料錯亂，<br>
+            <b>請大家先不要進行任何合成或操作！</b><br><br>
+            維護完成後會自動恢復，請稍候片刻 💚。
+        </p>
+        <div style="font-size: 0.85rem; background: rgba(0,0,0,0.3); padding: 8px 15px; border-radius: 20px; animation: shake 1s infinite;">
+            請勿重新整理或關閉網頁...
+        </div>
+    </div>
 </div>
 
     <script>

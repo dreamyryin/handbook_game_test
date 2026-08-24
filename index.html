@@ -349,6 +349,16 @@
                         </div>
                     </div>
                     <!-- 👆 新增日誌區塊結束 👆 -->
+                    <!-- 👇 未來新增日誌就複製這一個區塊 👇 -->
+                    <div style="margin-bottom: 10px;">
+                        <button onclick="toggleLog('log-20260823')" style="width:100%; text-align:left; padding:10px; font-weight:bold; background:#e0f7fa; color:#00838f; border:none; border-radius:5px; cursor:pointer;">
+                            📅 2026.08.24 12:20 
+                        </button>
+                        <div id="log-20260824" style="display:none; padding:10px; background:#f9f9f9; border-left:3px solid #00acc1; font-size:14px; margin-top:5px; color:#333;">
+                            新增一鍵合成功能。
+                        </div>
+                    </div>
+                    <!-- 👆 新增日誌區塊結束 👆 -->
                     
                 </div>
                 <button class="btn-action" style="background:#95a5a6; padding:8px; margin-top:15px;" onclick="backToSettings()">返回</button>
@@ -608,6 +618,7 @@
                     <p><b>咩咩木全員</b><br>任意兩組成員不重複的CP可以組合出咩咩木全員。</p>
                     <p><b>出售</b><br>出售等級N的元素，可獲得 (2^(N-1)+N)*10 的金幣。</p>
                     <p><b>一鍵整理</b><br>從Leader到忙內、等級低到等級高幫你排好。</p>
+                    <p><b>一鍵合成</b><br>使用一張CP卡可換取五分鐘一鍵合成功能；一張咩咩木全員則可以永久解鎖。一鍵合成功能開放時，可在下方調整需要一鍵合成的目標等級，盤面會自動把目標等級(含)以下的卡片合成。</p>
                     <p><b>引繼碼</b><br>在設定中可以找到，複製引繼碼以免進度遺失、或是轉移到不同裝置遊玩。</p>
                 `;
             } else {

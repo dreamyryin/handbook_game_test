@@ -21,10 +21,11 @@
     <!-- 讀取 Python 自動生成的圖鑑資料 -->
     <script src="card_data.js"></script>
 
-    <!-- ⚡ Firebase 測試專案核心與模組引入 (含記住帳號與自動同步) -->
+    <!-- ⚡ Firebase 測試專案核心與模組引入 (含登入/登出切換) -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-app.js";
-        import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-auth.js";
+        // 💡 確保這裡有引入 signOut
+        import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-auth.js";
         import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-firestore.js";
 
         const firebaseConfig = {
@@ -43,34 +44,46 @@
         window.faAuth = auth;
         window.faDb = db;
 
-        // ⚡ 1. 網頁開啟時，自動偵測是否已經登入過 (不用再一直選帳號)
+        // ⚡ 1. 網頁開啟時，自動偵測是否已經登入過
         onAuthStateChanged(auth, async (user) => {
             const btn = document.getElementById('btn-google-login');
             if (user) {
-                // 已經登入過，按鈕變更狀態
-                if (btn) btn.innerText = `☁️ 已登入: ${user.displayName}`;
+                // 已登入：按鈕變成紅色登出樣式
+                if (btn) {
+                    btn.innerText = `☁️ 已登入: ${user.displayName} (點擊登出)`;
+                    btn.style.background = "linear-gradient(45deg, #e74c3c, #c0392b)";
+                }
                 logMsg(`💚 歡迎回來，${user.displayName}！自動同步中...`);
-                // 登入狀態確認後，自動從雲端把最新進度抓下來 (方案 B)
                 await loadCloudData(user.uid);
             } else {
-                // 沒登入過，保持原樣
-                if (btn) btn.innerText = `☁️ Google 登入與同步`;
+                // 未登入：按鈕恢復原本的綠色登入樣式
+                if (btn) {
+                    btn.innerText = `☁️ Google 登入與同步`;
+                    btn.style.background = "linear-gradient(45deg, #4285F4, #34A853)";
+                }
             }
         });
 
-        // ☁️ 點擊登入按鈕的邏輯
+        // ☁️ 點擊登入/登出按鈕的邏輯
         window.loginWithGoogleCloud = async () => {
-            // 如果已經登入過了，就不再彈出視窗
+            // 【新增登出邏輯】如果已經登入過了，點擊就是觸發登出
             if (auth.currentUser) {
-                logMsg("✅ 您已經登入囉！遊戲會在背景自動同步。");
+                if (confirm("⚠️ 確定要登出 Google 帳號嗎？\n\n登出後進度將只會保存在此設備，暫停雲端同步。")) {
+                    try {
+                        await signOut(auth);
+                        logMsg("👋 已成功登出雲端同步！");
+                    } catch (error) {
+                        console.error(error);
+                        logMsg("❌ 登出失敗！");
+                    }
+                }
                 return;
             }
             
+            // 未登入則執行登入
             const provider = new GoogleAuthProvider();
             try {
-                // 只有完全沒登入過才會跳出這個視窗
                 await signInWithPopup(auth, provider);
-                // 登入成功後，onAuthStateChanged 會自動接手後續的讀檔動作
             } catch (error) {
                 console.error(error);
                 logMsg("❌ Google 登入失敗！");
@@ -79,7 +92,6 @@
 
         let cloudSyncTimer = null;
 
-        // ☁️ 自動背景即時上傳至雲端 Firestore
         window.triggerAutoCloudSave = function() {
             const user = auth.currentUser;
             if (!user) return; 
@@ -102,7 +114,6 @@
             }, 1500); 
         };
 
-        // ☁️ 從雲端 Firestore 讀取存檔
         async function loadCloudData(uid) {
             try {
                 const docRef = doc(db, "game_saves", uid);
@@ -324,7 +335,6 @@
     </div>
 
     <div class="main-content">
-        <!-- 分頁 1：合成區 -->
         <div id="page-merge" class="page active">
             <div class="mission-panel">
                 <div class="mission-title">Lv.<span id="level-num">1</span> 任務</div>
@@ -355,7 +365,6 @@
             </div>
         </div>
 
-        <!-- 分頁 2：商店 -->
         <div id="page-shop" class="page">
             <div class="panel-box">
                 <h2>🛒 盲盒商店</h2>
@@ -365,7 +374,6 @@
             </div>
         </div>
 
-        <!-- 分頁 3：拆卡 -->
         <div id="page-open" class="page">
             <div class="panel-box">
                 <h2>✨ 拆卡區</h2>
@@ -386,7 +394,6 @@
             <div id="result-display">等待拆卡...</div>
         </div>
 
-        <!-- 分頁 4：圖鑑 -->
         <div id="page-gallery" class="page">
             <div class="panel-box">
                 <h2>📚 收集度 (<span id="gallery-unlocked">0</span>/<span id="gallery-total">0</span>)</h2>
@@ -399,7 +406,6 @@
         </div>
     </div>
 
-    <!-- 導航 -->
     <div class="bottom-nav">
         <button class="nav-btn active" onclick="switchTab('merge', this)">🧩 合成</button>
         <button class="nav-btn" onclick="switchTab('shop', this)">🛒 商店</button>
@@ -415,12 +421,11 @@
         </div>
     </div>
 
-    <!-- ⚙️ 設定選單 -->
     <div id="settings-modal" class="modal-bg" onclick="closeSettings()">
         <div class="modal-container" onclick="event.stopPropagation()">
             <div id="settings-menu">
                 <h3 style="margin:0 0 15px 0; color:#2c3e50;">⚙️ 設定</h3>
-                <!-- ⚡ 加上 id="btn-google-login" 以便後台動態修改文字 -->
+                <!-- ⚡ 按鈕 ID 在這，會隨狀態變更顏色與文字 -->
                 <button id="btn-google-login" class="btn-action" style="background: linear-gradient(45deg, #4285F4, #34A853);" onclick="window.loginWithGoogleCloud()">☁️ Google 登入與同步</button>
                 <button class="btn-action" onclick="showTransferMenu()">🔄 進度轉移 (引繼碼)</button>
                 <button class="btn-action" style="background: linear-gradient(45deg, #00acc1, #00bcd4);" onclick="showUpdateLog()">📜 版本更新日誌</button>
@@ -707,7 +712,7 @@
         }
         function closeHelp() { document.getElementById('help-modal').style.display = 'none'; }
 
-        // --- 💾 存讀檔系統 (含背景上傳) ---
+        // --- 💾 存讀檔系統 ---
         function saveLocalData() {
             try {
                 const charList = ['solar', 'moon', 'whee', 'hwa'];

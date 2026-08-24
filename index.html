@@ -1708,7 +1708,15 @@
                 const box = document.createElement('div');
                 box.className = `evo-cell`;
                 box.style.background = '#eee';
-                box.innerHTML = `<img src="${card.path}" onerror="this.src='';this.alt='找不到圖'">`;
+                
+                // 🌟 加上了頂部的 Set 名稱半透明標籤
+                box.innerHTML = `
+                    <div style="position: absolute; top: 0; left: 0; width: 100%; background: rgba(0,0,0,0.6); color: white; font-size: 9px; padding: 2px 0; border-radius: 6px 6px 0 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                        ${card.set}
+                    </div>
+                    <img src="${card.path}" onerror="this.src='';this.alt='找不到圖'" style="margin-top: 12px; height: 70%;">
+                `;
+                
                 box.onclick = (e) => {
                     e.stopPropagation(); 
                     choiceCards--;

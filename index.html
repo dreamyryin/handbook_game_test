@@ -406,7 +406,7 @@
         <div style="position: absolute; top: 15px; right: 20px; color: white; font-size: 2.5rem; font-weight: bold; cursor: pointer; text-shadow: 0 2px 4px rgba(0,0,0,0.5);">&times;</div>
     </div>
 
-    <!-- 🚨 GM 緊急維護畫面 (預設是關閉的 display:none) -->
+    <!-- 🚨 GM 緊急維護畫面 (預設是關閉的 display:none 用flex打開) -->
     <div id="maintenance-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(192, 57, 43, 0.95); z-index:99999; flex-direction:column; justify-content:center; align-items:center; color:white; text-align:center; padding:20px; box-sizing:border-box;">
         <div style="font-size: 3rem; margin-bottom: 10px;">🛠️</div>
         <h2 style="margin: 0 0 10px 0; font-size: 1.8rem;">GM 正在緊急維護中！</h2>
@@ -630,7 +630,7 @@
         }
         function closeHelp() { document.getElementById('help-modal').style.display = 'none'; }
 
-        // --- 💾 全自動本機存檔系統 ---
+        // --- 💾 全自動本機存檔系統 (支援開著才計時的剩餘秒數) ---
         function saveLocalData() {
             try {
                 const charList = ['solar', 'moon', 'whee', 'hwa'];
@@ -652,10 +652,19 @@
                 const compactGallery = galleryData.map(c => c.unlocked ? 1 : 0).join('');
                 const mStr = currentMissionData ? btoa(encodeURIComponent(JSON.stringify(currentMissionData))) : "";
 
-                const rawStr = `${coins}|${inventory.small},${inventory.large},${inventory.surprise}|${tears}|${choiceCards}|${currentLevel}|${compactSets}|${compactBoard}|${compactGallery}|${mStr}`;
+                const permAutoFlag = isPermanentAutoMerge ? 1 : 0;
+                
+                // 計算並儲存「剩餘秒數」：若非永久且還在倒數，就存下剩餘秒數；否則為 0
+                let leftSec = 0;
+                if (!isPermanentAutoMerge && autoMergeEndTime > Date.now()) {
+                    leftSec = Math.ceil((autoMergeEndTime - Date.now()) / 1000);
+                }
+
+                const rawStr = `${coins}|${inventory.small},${inventory.large},${inventory.surprise}|${tears}|${choiceCards}|${currentLevel}|${compactSets}|${compactBoard}|${compactGallery}|${mStr}|${permAutoFlag}|${leftSec}`;
+                
                 localStorage.setItem('mamamoo_save', rawStr);
             } catch (e) {
-                console.error("Auto-save failed");
+                console.error("Auto-save failed", e);
             }
         }
 
@@ -714,10 +723,25 @@
                 } else {
                     currentMissionData = generateMissionsForLevel(currentLevel);
                 }
+
+                // 還原永久狀態與剩餘秒數
+                if (parts.length > 9 && parts[9]) {
+                    isPermanentAutoMerge = (parts[9] === '1');
+                }
+                if (parts.length > 10 && parts[10]) {
+                    let savedLeftSec = parseInt(parts[10]) || 0;
+                    if (savedLeftSec > 0 && !isPermanentAutoMerge) {
+                        // 讀檔時把剩餘秒數轉換為以當前時間為基準的截止點
+                        autoMergeEndTime = Date.now() + (savedLeftSec * 1000);
+                    } else {
+                        autoMergeEndTime = 0;
+                    }
+                }
                 
                 bossActive = false;
                 return true;
             } catch (e) {
+                console.error("Load failed", e);
                 return false;
             }
         }
@@ -1029,6 +1053,26 @@
                 }, 500);
             }
             updateBoard();
+        }
+
+        // 🎁 發放維護補償的函數 (直接送 3 張自選卡！)
+        function checkAndClaimCompensation() {
+            const compId = "compensation_20260824_1"; // 換一個新的補償 ID
+            let claimed = localStorage.getItem(compId);
+
+            if (!claimed) {
+                // 發放補償內容：3 張自選卡
+                choiceCards += 3;
+                
+                // 標記為已領取
+                localStorage.setItem(compId, 'true');
+                updateShopUI();
+                updateBoard();
+
+                // 彈出溫馨公告告知玩家
+                alert("💚 【營運補償公告】\n\n感謝各位木木的耐心等候與熱情測試！\n本次維護已順利完成。\n\n 補償已發放：\n- 萬能自選卡 +3 張 ✨");
+                logMsg("🎁 成功領取 3 張萬能自選卡補償！");
+            }
         }
 
         let dragSourceIdx = -1;
@@ -1595,6 +1639,8 @@
             updateGalleryUI(); 
 
             setInterval(updateAutoButtonUI, 1000);
+
+            checkAndClaimCompensation();
             
             if (hasSave) logMsg("✅ 已自動為您讀取上次遊玩進度！");
         };

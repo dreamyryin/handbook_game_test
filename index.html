@@ -1582,6 +1582,8 @@
             initBoard(); 
             updateShopUI(); 
             updateGalleryUI(); 
+
+            setInterval(updateAutoButtonUI, 1000);
             
             if (hasSave) logMsg("✅ 已自動為您讀取上次遊玩進度！");
         };

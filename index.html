@@ -1034,6 +1034,23 @@
                 return;
             }
 
+            // --- 🥚 容仙 IC 彩蛋計數邏輯 ---
+            if (!window.sortClickCount) window.sortClickCount = 0;
+            window.sortClickCount++;
+            
+            if (window.sortClickTimer) clearTimeout(window.sortClickTimer);
+            window.sortClickTimer = setTimeout(() => {
+                window.sortClickCount = 0; // 5秒後歸零
+            }, 5000);
+
+            if (window.sortClickCount >= 3) {
+                window.sortClickCount = 0; // 觸發後歸零
+                clearTimeout(window.sortClickTimer);
+                triggerYongICEasterEgg(); // 呼叫翻桌函數
+                return;
+            }
+            // -------------------------------
+
             let members = [];
             let cps = [];
             let finals = [];
@@ -1061,6 +1078,34 @@
 
             updateBoard();
             logMsg("🧹 盤面已自動為您整理！");
+        }
+
+        function triggerYongICEasterEgg() {
+            // 播放音效
+            let audio = new Audio('audios/yong_IC.mp3');
+            audio.play().catch(err => console.log("音效播放被阻擋", err));
+
+            // 收集盤面上所有的卡片
+            let items = [];
+            board.forEach(item => {
+                if (item) items.push(item);
+            });
+
+            // 準備 64 個空位並打亂順序
+            let availableSpots = Array.from({length: BOARD_SIZE}, (_, i) => i);
+            for (let i = availableSpots.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [availableSpots[i], availableSpots[j]] = [availableSpots[j], availableSpots[i]];
+            }
+
+            // 清空盤面，把卡片隨機散落到各個位置
+            board = new Array(BOARD_SIZE).fill(null);
+            items.forEach(item => {
+                let spot = availableSpots.pop(); // 抽出一個隨機位置
+                board[spot] = item;
+            });
+
+            updateBoard();
         }
 
         function updateBoard() {

@@ -27,7 +27,6 @@
         import { getAuth, signInWithPopup, GoogleAuthProvider, signOut } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-auth.js";
         import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-firestore.js";
 
-        // 你的測試專案設定 (test-67c4a)
         const firebaseConfig = {
             apiKey: "AIzaSyDCTEj9NcX7D1H61axz5-ecSImG1WQqQB0",
             authDomain: "test-67c4a.firebaseapp.com",
@@ -44,7 +43,6 @@
         window.faAuth = auth;
         window.faDb = db;
 
-        // ☁️ 點擊 Google 登入並自動同步雲端存檔
         window.loginWithGoogleCloud = async () => {
             const provider = new GoogleAuthProvider();
             try {
@@ -60,7 +58,6 @@
 
         let cloudSyncTimer = null;
 
-        // ☁️ 自動背景即時上傳至雲端 Firestore
         window.triggerAutoCloudSave = function() {
             const user = auth.currentUser;
             if (!user) return; 
@@ -83,7 +80,6 @@
             }, 1500); 
         };
 
-        // ☁️ 從雲端 Firestore 讀取存檔
         async function loadCloudData(uid) {
             try {
                 const docRef = doc(db, "game_saves", uid);
@@ -149,7 +145,6 @@
         .coin-area { font-size: 1.1rem; font-weight: bold; color: #f39c12; }
         #log-area { font-size: 0.85rem; color: #e74c3c; font-weight: bold; flex: 1; text-align: center; margin: 0 10px;}
 
-        /* 設定與說明按鈕 */
         .btn-settings { background: none; border: none; font-size: 1.2rem; cursor: pointer; transition: transform 0.2s; padding: 0;}
         .btn-settings:active { transform: rotate(90deg); }
         .btn-help { background: white; color: var(--primary); border: 2px solid var(--primary); border-radius: 50%; width: 24px; height: 24px; font-size: 0.9rem; font-weight: bold; cursor: pointer; display: flex; justify-content: center; align-items: center; padding: 0;}
@@ -402,7 +397,6 @@
         <div class="modal-container" onclick="event.stopPropagation()">
             <div id="settings-menu">
                 <h3 style="margin:0 0 15px 0; color:#2c3e50;">⚙️ 設定</h3>
-                <!-- ☁️ Google 測試登入按鈕 -->
                 <button class="btn-action" style="background: linear-gradient(45deg, #4285F4, #34A853);" onclick="window.loginWithGoogleCloud()">☁️ Google 登入與同步</button>
                 <button class="btn-action" onclick="showTransferMenu()">🔄 進度轉移 (引繼碼)</button>
                 <button class="btn-action" style="background: linear-gradient(45deg, #00acc1, #00bcd4);" onclick="showUpdateLog()">📜 版本更新日誌</button>
@@ -689,7 +683,7 @@
         }
         function closeHelp() { document.getElementById('help-modal').style.display = 'none'; }
 
-        // --- 💾 終極高容錯率存讀檔系統 (含自動背景雲端同步) ---
+        // --- 💾 終極高容錯率存讀檔系統 (⚡ 這裡修復了任務漏存的 Bug) ---
         function saveLocalData() {
             try {
                 const charList = ['solar', 'moon', 'whee', 'hwa'];
@@ -709,6 +703,8 @@
                 const compactBoard = bStr.join('-'); 
                 const compactSets = Array.from(claimedSets).map(s => setList.indexOf(s)).filter(i => i >= 0).join('-');
                 const compactGallery = galleryData.map(c => c.unlocked ? 1 : 0).join('');
+                
+                // ⚡ 確保任務資料有正確被編碼
                 const mStr = currentMissionData ? btoa(encodeURIComponent(JSON.stringify(currentMissionData))) : "";
 
                 const permAutoFlag = isPermanentAutoMerge ? 1 : 0;
@@ -717,6 +713,7 @@
                     leftSec = Math.ceil((autoMergeEndTime - Date.now()) / 1000);
                 }
 
+                // ⚡ 核心修復：把 mStr 確實放進儲存字串裡！
                 const rawStr = `${coins}|${inventory.small},${inventory.large},${inventory.surprise}|${tears}|${choiceCards}|${currentLevel}|${compactSets}|${compactBoard}|${compactGallery}|${mStr}|${permAutoFlag}|${leftSec}`;
                 localStorage.setItem('mamamoo_save', rawStr);
 
@@ -821,16 +818,12 @@
             }
         }
 
-        // --- 🎁 嚴格時間線的補償系統 (新玩家絕對領不到) ---
+        // --- 🎁 嚴格時間線的補償系統 ---
         function checkAndClaimCompensation() {
-            // 設定維護公告發布的時間點（例如：2026年8月24日中午 12:00）
-            // 只有在這個時間點「之前」就已經建立存檔的玩家才能領取
             const maintenanceDeadline = new Date("2026-08-24T12:00:00").getTime();
-
             let createTime = localStorage.getItem('player_created_at');
             
             if (!createTime) {
-                // 如果是今天才第一次玩的新玩家，我們把他的創角時間記錄為「現在」
                 createTime = Date.now();
                 localStorage.setItem('player_created_at', createTime);
             } else {
@@ -854,14 +847,12 @@
 
             compensations.forEach(comp => {
                 let claimed = localStorage.getItem(comp.id);
-                // 必須符合兩個條件才能領：1. 從來沒領過 2. 玩家的創角時間在維護死線「之前」
                 if (!claimed && createTime < maintenanceDeadline) {
                     comp.reward();
                     localStorage.setItem(comp.id, 'true');
                     alert(comp.msg);
                     logMsg(comp.log);
                 } else if (!claimed && createTime >= maintenanceDeadline) {
-                    // 如果是新玩家，直接把補償狀態標記為過期，永遠不發放
                     localStorage.setItem(comp.id, 'expired');
                 }
             });

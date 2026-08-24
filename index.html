@@ -157,11 +157,11 @@
         }
 
         .btn-spawn {
-            padding: 12px; font-size: 1.1rem;
+            padding: 10px 4px; font-size: 0.85rem;
             font-weight: bold; color: white; border: none; border-radius: 8px; 
             user-select: none; -webkit-user-select: none; touch-action: none; cursor: pointer;
         }
-        .btn-spawn:active { transform: translateY(4px); box-shadow: 0 0 0 !important; }
+        .btn-spawn:active { transform: translateY(2px); box-shadow: 0 0 0 !important; }
 
         .modal-bg {
             display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%;
@@ -230,9 +230,30 @@
             
             <div id="trash-can">🗑️ 拖曳至此出售</div>
             
-            <div style="display: flex; gap: 8px; margin-top: 10px; width: 100%;">
-                <button class="btn-spawn" style="flex: 1; background-color: #3498db; box-shadow: 0 4px 0 #2980b9;" onclick="sortBoard()">🧹 一鍵整理</button>
-                <button class="btn-spawn" id="btn-spawn" style="flex: 2; background-color: var(--primary); box-shadow: 0 4px 0 #2e7d32;">⬇️ 長按連續召喚</button>
+            <!-- 三顆按鈕排在一排（無 Emoji、等寬） -->
+            <div class="board-container">
+                <div class="board" id="game-board"></div>
+            </div>
+            
+            <div id="trash-can">🗑️ 拖曳至此出售</div>
+            
+            <!-- 三顆按鈕排在垃圾桶下方、導航列上方 -->
+            <div style="display: flex; gap: 6px; margin-top: 10px; width: 100%; align-items: flex-start;">
+                <button class="btn-spawn" style="flex: 1; background-color: #3498db; box-shadow: 0 3px 0 #2980b9;" onclick="sortBoard()">一鍵整理</button>
+                
+                <!-- 一鍵合成按鈕與等級調整區塊 -->
+                <div style="flex: 1.2; display: flex; flex-direction: column; gap: 3px;">
+                    <button class="btn-spawn" id="btn-auto-merge" style="width: 100%; background-color: #95a5a6; box-shadow: 0 3px 0 #7f8c8d;" onclick="handleAutoMergeAction()">一鍵合成</button>
+                    <div id="auto-merge-level-control" style="display: none; justify-content: space-between; align-items: center; background: #fff; padding: 2px 6px; border-radius: 4px; font-size: 0.75rem; font-weight: bold; border: 1px solid #ccc;">
+                        <span style="color:#555;">目標: <span id="target-merge-lvl">3</span></span>
+                        <div style="display: flex; gap: 4px;">
+                            <button onclick="adjustAutoMergeLevel(-1)" style="background:#e74c3c; color:white; border:none; width:18px; height:18px; border-radius:3px; cursor:pointer; font-weight:bold;">-</button>
+                            <button onclick="adjustAutoMergeLevel(1)" style="background:#2ecc71; color:white; border:none; width:18px; height:18px; border-radius:3px; cursor:pointer; font-weight:bold;">+</button>
+                        </div>
+                    </div>
+                </div>
+
+                <button class="btn-spawn" id="btn-spawn" style="flex: 1; background-color: var(--primary); box-shadow: 0 3px 0 #2e7d32;">長按召喚</button>
             </div>
         </div>
 
@@ -406,6 +427,11 @@
         let hwasaTimerId = null;
         let bossActive = false; 
 
+        // ⚡ 一鍵合成相關變數
+        let autoMergeEndTime = 0; 
+        let isPermanentAutoMerge = false; 
+        let currentAutoMergeMaxLevel = 3; 
+
         function initGalleryData() {
             let idCounter = 0;
             for (let setName in gameCardSets) {
@@ -440,7 +466,6 @@
             document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
             btn.classList.add('active');
 
-            // 控制說明按鈕：只在合成區(merge)跟商店(shop)顯示
             const helpBtn = document.getElementById('btn-help-global');
             if (pageId === 'merge' || pageId === 'shop') {
                 helpBtn.style.display = 'flex';
@@ -452,6 +477,113 @@
         function logMsg(msg) {
             const el = document.getElementById('log-area');
             el.innerText = msg; setTimeout(() => { el.innerText = 'MAMAMOO 宿舍'; }, 3000);
+        }
+
+        // --- ⚡ 一鍵合成控制邏輯 ---
+        function adjustAutoMergeLevel(amount) {
+            currentAutoMergeMaxLevel += amount;
+            if (currentAutoMergeMaxLevel < 1) currentAutoMergeMaxLevel = 1;
+            if (currentAutoMergeMaxLevel > 11) currentAutoMergeMaxLevel = 11;
+            document.getElementById('target-merge-lvl').innerText = currentAutoMergeMaxLevel;
+        }
+
+        function handleAutoMergeAction() {
+            let isReady = isPermanentAutoMerge || (Date.now() < autoMergeEndTime);
+
+            if (!isReady) {
+                let choice = confirm("【一鍵合成解鎖】\n\n[確定] 消耗 1 張 CP卡，解鎖 5 分鐘！\n[取消] 看是否要用「永久解鎖」（消耗 1 張完全體）");
+                
+                if (choice) {
+                    let cpIdx = board.findIndex(i => i && i.type === 'cp');
+                    if (cpIdx === -1) { logMsg("❌ 盤面上沒有 CP 卡可以消耗！"); return; }
+                    if (confirm("⚠️ 確定要消耗盤面上的一張 CP 卡來換取 5 分鐘一鍵合成嗎？")) {
+                        board[cpIdx] = null;
+                        autoMergeEndTime = Date.now() + 5 * 60 * 1000;
+                        logMsg("⚡ 成功解鎖 5 分鐘一鍵合成！");
+                        updateBoard();
+                    }
+                } else {
+                    let finalIdx = board.findIndex(i => i && i.type === 'final');
+                    if (finalIdx === -1) { logMsg("❌ 盤面上沒有【MAMAMOO 完全體】可以消耗！"); return; }
+                    if (confirm("⚠️🔥 警告！這將永久消耗盤面上的一張【完全體】來換取永恆的一鍵合成！確定嗎？")) {
+                        board[finalIdx] = null;
+                        isPermanentAutoMerge = true;
+                        logMsg("🎉 恭喜解鎖【永久一鍵合成】！");
+                        updateBoard();
+                    }
+                }
+            } else {
+                executeActiveAutoMerge();
+            }
+        }
+
+        function executeActiveAutoMerge() {
+            if (bossActive || board.some(i => i && i.type === 'hungry')) {
+                logMsg("🚨 特殊事件中無法使用一鍵合成！");
+                return;
+            }
+
+            let totalMergedCount = 0;
+            let loopSafety = 0;
+
+            while (loopSafety < 100) {
+                loopSafety++;
+                let didMergeInThisPass = false;
+
+                for (let i = 0; i < BOARD_SIZE; i++) {
+                    let itemA = board[i];
+                    if (!itemA || itemA.type !== 'member' || itemA.level > currentAutoMergeMaxLevel) continue;
+
+                    for (let j = i + 1; j < BOARD_SIZE; j++) {
+                        let itemB = board[j];
+                        if (itemB && itemB.type === 'member' && itemB.char === itemA.char && itemB.level === itemA.level && itemB.level <= 11) {
+                            board[j] = { type: 'member', char: itemB.char, level: itemB.level + 1 };
+                            board[i] = null;
+                            totalMergedCount++;
+                            didMergeInThisPass = true;
+                            break; 
+                        }
+                    }
+                    if (didMergeInThisPass) break; 
+                }
+
+                if (!didMergeInThisPass) break; 
+            }
+
+            if (totalMergedCount > 0) {
+                logMsg(`⚡ 一鍵合成發動！成功連鎖清理低階卡片！`);
+            } else {
+                logMsg(`⚠️ 盤面上沒有符合 Lv.${currentAutoMergeMaxLevel} 以下可合成的卡片！`);
+            }
+            updateBoard();
+        }
+
+        function updateAutoButtonUI() {
+            const btn = document.getElementById('btn-auto-merge');
+            const levelControl = document.getElementById('auto-merge-level-control');
+            if (!btn) return;
+
+            let isReady = isPermanentAutoMerge || (Date.now() < autoMergeEndTime);
+
+            if (isPermanentAutoMerge) {
+                btn.style.backgroundColor = '#27ae60';
+                btn.style.boxShadow = '0 3px 0 #1e8449';
+                btn.innerText = '一鍵合成 (永久)';
+                levelControl.style.display = 'flex';
+            } else if (Date.now() < autoMergeEndTime) {
+                let leftSec = Math.ceil((autoMergeEndTime - Date.now()) / 1000);
+                let m = Math.floor(leftSec / 60);
+                let s = leftSec % 60;
+                btn.style.backgroundColor = '#2ecc71';
+                btn.style.boxShadow = '0 3px 0 #27ae60';
+                btn.innerText = `執行中 ${m}:${s < 10 ? '0' : ''}${s}`;
+                levelControl.style.display = 'flex';
+            } else {
+                btn.style.backgroundColor = '#95a5a6';
+                btn.style.boxShadow = '0 3px 0 #7f8c8d';
+                btn.innerText = '一鍵合成 (未解鎖)';
+                levelControl.style.display = 'none';
+            }
         }
 
         // --- 📖 說明書功能 ---
@@ -624,15 +756,12 @@
 
             // 🎉 彩蛋 001：MAMAMOO 終極密碼
             let checkCode = code.toUpperCase(); 
-            if (checkCode === "MAMAMOO" || checkCode === "20140619" || checkCode === "Mamamoo" || checkCode === "mamamoo") {
-                // 🔊 播放彩蛋音效 (每次輸入皆會播放)
+            if (checkCode === "MAMAMOO" || checkCode === "20140619" || checkCode === "140619") {
                 let easterEggAudio = new Audio('audios/mamamoo_greeting.mp3'); 
                 easterEggAudio.play().catch(err => console.log("音效播放被阻擋", err));
 
-                // 每次都顯示相同的提示文字 (不帶音符 emoji)
                 logMsg("I say MAMA MAMA MOO~");
 
-                // 檢查內部紀錄編號 egg_001 是否已領取過獎勵
                 let claimedEgg001 = localStorage.getItem('claimed_egg_001');
                 if (!claimedEgg001) {
                     coins += 6190;
@@ -799,6 +928,7 @@
             });
             document.getElementById('coins').innerText = coins;
             updateTaskUI(); 
+            updateAutoButtonUI(); // 更新一鍵合成按鈕狀態
             saveLocalData(); 
         }
 
@@ -941,7 +1071,6 @@
                     let effectiveLevel = 0;
                     let itemName = "";
 
-                    // 1. 判定實際等級與名稱
                     if (item.type === 'member') {
                         effectiveLevel = item.level;
                         itemName = `Lv.${item.level} 卡片`;
@@ -954,18 +1083,16 @@
                     }
 
                     if (effectiveLevel > 0) {
-                        // 2. 🛡️ 防呆機制：如果是 Lv.8 (含) 以上，跳出確認視窗
                         if (effectiveLevel >= 7) {
                             let confirmSell = confirm(`⚠️ 警告！你即將出售珍貴的【${itemName}】！\n確定要賣掉嗎？`);
                             if (!confirmSell) {
                                 logMsg("✅ 已取消出售，卡片安全回到盤面！");
                                 dragSourceIdx = -1;
                                 updateBoard();
-                                return; // 玩家按取消，中止出售程序
+                                return; 
                             }
                         }
 
-                        // 3. 💰 套用原本的精密公式計算金額： (2^(N-1) + N) * 10
                         const earn = (Math.pow(2, effectiveLevel - 1) + effectiveLevel) * 10;
                         coins += earn;
                         board[dragSourceIdx] = null;
@@ -1005,19 +1132,16 @@
             if (!targetItem) { board[targetIdx] = srcItem; board[srcIdx] = null; updateBoard(); return; }
 
             if ((targetItem.type === 'hungry' && srcItem.type === 'member') || (srcItem.type === 'hungry' && targetItem.type === 'member')) {
-                // 先抓出被餵食的成員是誰，以及黑金妮在哪一格
                 let memberItem = srcItem.type === 'member' ? srcItem : targetItem;
                 let hungryIdx = targetItem.type === 'hungry' ? targetIdx : srcIdx;
                 
-                // 檢查等級是不是超過 5
                 if (memberItem.level > 5) {
                     logMsg("⚠️ 黑金妮拒吃太高級的！重新計時 10 秒！");
-                    board[hungryIdx].timeLeft = 10; // 把黑金妮的秒數重置為 10
-                    updateBoard(); // 讓卡片彈回原位，並更新秒數顯示
+                    board[hungryIdx].timeLeft = 10; 
+                    updateBoard(); 
                     return;
                 }
                 
-                // 等級 5 以下才允許吃掉
                 board[targetIdx] = null; board[srcIdx] = null; clearInterval(hwasaTimerId); coins += 200; logMsg("黑金妮吃飽了！+200💰"); updateBoard(); return;
             }
 
@@ -1027,7 +1151,6 @@
                         board[srcIdx] = null; board[targetIdx] = null; 
                         let spot = findEmpty2x2();
                         
-                        // 🎲 判斷機率：如果是 Lv.4 合成就是 10% (0.1)，Lv.5 合成就是 5% (0.05)
                         let bossChance = (srcItem.level === 4) ? 0.075 : 0.05;
                         
                         if (spot !== -1 && Math.random() < bossChance) { 
@@ -1170,13 +1293,10 @@
             const randIdx = emptyIndices[Math.floor(Math.random() * emptyIndices.length)];
             const randChar = chars[Math.floor(Math.random() * chars.length)].id;
             
-            // 🎲 根據關卡決定召喚等級的機率
             let spawnLevel = 1;
-            let randNum = Math.random() * 100; // 產生 0~100 的隨機數
+            let randNum = Math.random() * 100;
             
             if (currentLevel > 20) {
-                // Lv.20 以後：最高召喚 Lv.6
-                // 機率分佈：Lv.1(40%), Lv.2(25%), Lv.3(15%), Lv.4(10%), Lv.5(7%), Lv.6(3%)
                 if (randNum < 40) spawnLevel = 1;
                 else if (randNum < 65) spawnLevel = 2;
                 else if (randNum < 80) spawnLevel = 3;
@@ -1184,20 +1304,15 @@
                 else if (randNum < 97) spawnLevel = 5;
                 else spawnLevel = 6;
             } else if (currentLevel > 8) {
-                // Lv.8 以後：最高召喚 Lv.4
-                // 機率分佈：Lv.1(50%), Lv.2(25%), Lv.3(15%), Lv.4(10%)
                 if (randNum < 50) spawnLevel = 1;
                 else if (randNum < 75) spawnLevel = 2;
                 else if (randNum < 90) spawnLevel = 3;
                 else spawnLevel = 4;
             } else if (currentLevel > 4) {
-                // Lv.4 以後：最高召喚 Lv.2
-                // 機率分佈：Lv.1(70%), Lv.2(30%)
                 if (randNum < 70) spawnLevel = 1;
                 else spawnLevel = 2;
             }
 
-            // 執行召喚
             board[randIdx] = { type: 'member', char: randChar, level: spawnLevel }; 
             updateBoard(); 
             return true;

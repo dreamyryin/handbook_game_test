@@ -450,7 +450,7 @@
             <div id="settings-credits" style="display:none; text-align:left;">
                 <h3 style="margin:0 0 10px 0; color:#2c3e50; text-align:center;">📝 Credits</h3>
                 <div style="font-size:0.85rem; color:#555; max-height:50vh; overflow-y:auto; line-height:1.4; padding: 0 5px;">
-                    <p style="margin-top:0;"><b>作者碎碎念:</b><br>其實就是想玩圖鑑蒐集遊戲但是找不到喜歡的所以想說自己搞吧。一開始還很笨想說每個人放五六百張的話那我乾脆手動抓，還好我有先去查。Gallery-dl真的是個好東西，推薦大家使用，八千多張照片幾十分鐘就自動下載好了。但篩選我真的不知道Python能不能，我覺得不行，所以就手動挑了。結果很崩潰啊，安黑金小姐太多背對的照片了；丁輝妮放的全是勾某，很怕她們兩個照片不夠。合照的部分也是手動查重的，有重複敬請見諒。<br><br>如果你很好心的想提供我建議，可以私訊moomoo_sh3d的threads。</p>
+                    <p style="margin-top:0;"><b>作者碎碎念:</b><br>其實就是想玩圖鑑蒐集遊戲但是找不到喜歡的所以想說自己搞吧。一開始還很笨想說每個人放五六百張的話那我乾脆手動抓，還好我有先去查。Gallery-dl真的是個好東西，推薦大家使用，八千多張照片幾十分鐘就自動下載好了。但篩選我真的不知道Python能不能，我覺得不行，所以就手動挑了。結果很崩潰啊，安黑金小姐太多背對的照片了；丁輝妮放的全是勾某，很怕她們兩個照片不夠。合照的部分也是手動查重的，有重複敬請見諒。<br><br>If you would like to offer suggestions, you can message moomoo_sh3d on threads.</p>
                     <p><b>credits</b><br>槓龜圖：ETtoday<br>圖鑑圖片：<br>solarkeem<br>mo_onbyul<br>whee_inthemood<br>_mariahwasa</p>
                     <p><b>特別感謝</b><br>Gallery-dl<br>Gemini</p>
                 </div>
@@ -801,6 +801,8 @@
                         } catch(err) {}
                     }
                 });
+
+                // 💡 只有在存檔裡完全沒有任務記錄時，才現場隨機產生一組並立刻鎖定！
                 if (!missionLoaded) {
                     currentMissionData = generateMissionsForLevel(currentLevel);
                 }
@@ -1704,6 +1706,7 @@
                 if (item.unlocked) totalUnlocked++;
             });
 
+            const claimedSets = new Set();
             for (let setName in setsGroup) {
                 const title = document.createElement('div');
                 title.className = 'set-title';

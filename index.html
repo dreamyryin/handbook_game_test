@@ -1,0 +1,1466 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>MAMAMOO 合成 GAME</title>
+    
+    <!-- Web App Manifest (Android/Chrome 專用) -->
+    <link rel="manifest" href="manifest.json">
+    
+    <!-- iOS Safari 專屬設定 -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="MAMAMOO合成">
+    <link rel="apple-touch-icon" href="images/icon.jpg">
+
+    <!-- 讀取 Python 自動生成的圖鑑資料 -->
+    <script src="card_data.js"></script>
+    <style>
+        :root {
+            --primary: #4caf50; 
+            --bg-color: #f0f8f1; 
+            --text-dark: #2c3e50;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #222; 
+            color: var(--text-dark);
+            margin: 0; padding: 0;
+            display: flex; justify-content: center; align-items: center;
+            height: 100vh;
+            height: 100dvh; 
+            overflow: hidden; 
+        }
+
+        #app-container {
+            width: 100%; max-width: 430px; 
+            height: 100%; 
+            max-height: 900px;
+            background-color: var(--bg-color);
+            display: flex; flex-direction: column;
+            position: relative; overflow: hidden;
+            box-shadow: 0 0 20px rgba(0,0,0,0.5);
+        }
+        
+        .top-bar {
+            background: white; padding: 10px 15px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            display: flex; justify-content: space-between; align-items: center;
+            z-index: 100;
+        }
+        .coin-area { font-size: 1.1rem; font-weight: bold; color: #f39c12; }
+        #log-area { font-size: 0.85rem; color: #e74c3c; font-weight: bold; flex: 1; text-align: center; margin: 0 10px;}
+
+        /* 設定與說明按鈕 */
+        .btn-settings { background: none; border: none; font-size: 1.2rem; cursor: pointer; transition: transform 0.2s; padding: 0;}
+        .btn-settings:active { transform: rotate(90deg); }
+        .btn-help { background: white; color: var(--primary); border: 2px solid var(--primary); border-radius: 50%; width: 24px; height: 24px; font-size: 0.9rem; font-weight: bold; cursor: pointer; display: flex; justify-content: center; align-items: center; padding: 0;}
+
+        .main-content {
+            flex: 1; 
+            overflow-y: auto; 
+            -webkit-overflow-scrolling: touch; 
+            padding: 10px;
+            display: flex; 
+            justify-content: center; 
+            align-items: flex-start;
+            box-sizing: border-box;
+        }
+        .page { 
+            display: none; 
+            width: 100%; 
+            flex-direction: column; 
+            gap: 10px; 
+            padding-bottom: 40px; 
+        }
+        .page.active { display: flex; }
+
+        .bottom-nav {
+            background: #2c3e50; display: flex; padding: 5px 0;
+            box-shadow: 0 -2px 10px rgba(0,0,0,0.2); z-index: 100;
+        }
+        .nav-btn {
+            flex: 1; background: none; border: none; color: #bdc3c7;
+            font-size: 0.9rem; font-weight: bold; padding: 12px 5px; cursor: pointer;
+        }
+        .nav-btn.active { color: #2ecc71; border-bottom: 3px solid #2ecc71; }
+
+        .mission-panel { background: white; padding: 10px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+        .mission-title { font-weight: bold; color: #d35400; font-size: 1rem; border-bottom: 1px solid #eee; padding-bottom: 5px; margin-bottom: 5px;}
+        .task-list { display: flex; flex-direction: column; gap: 8px; }
+        .task-item {
+            display: flex; justify-content: space-between; align-items: center;
+            background: #fafafa; padding: 8px; border-radius: 8px; font-size: 0.9rem; border: 1px solid #eee;
+        }
+        .btn-submit {
+            background: #ccc; color: white; border: none; padding: 6px 14px; border-radius: 12px;
+            font-weight: bold; cursor: not-allowed; transition: 0.2s; white-space: nowrap;
+        }
+        .btn-submit.ready { background: var(--primary); cursor: pointer; box-shadow: 0 2px 0 #2e7d32; }
+        .btn-submit.ready:active { transform: translateY(2px); box-shadow: none; }
+        .task-done { color: var(--primary); font-weight: bold; font-size: 1.2rem; padding-right: 5px;}
+        
+        .board-container { width: 100%; position: relative; }
+        .board {
+            display: grid; grid-template-columns: repeat(8, 1fr); gap: 3px;
+            background-color: var(--primary); padding: 3px; border-radius: 8px;
+            aspect-ratio: 1; 
+        }
+        
+        .cell {
+            background-color: rgba(255, 255, 255, 0.9); border-radius: 4px;
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            cursor: grab; user-select: none; overflow: hidden; 
+            box-sizing: border-box; position: relative;
+        }
+        .cell:active { cursor: grabbing; }
+
+        .cell img { width: 85%; height: 85%; object-fit: contain; pointer-events: none; user-select: none; }
+
+        .badge-overlay {
+            position: absolute; bottom: 2px; right: 2px; background: rgba(0, 0, 0, 0.7); color: white;
+            font-size: 10px; font-weight: bold; padding: 2px 4px; border-radius: 4px; pointer-events: none;
+        }
+
+        .ghost {
+            position: absolute; pointer-events: none; opacity: 0.8; z-index: 9999;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3); transform: translate(-50%, -50%);
+        }
+
+        .falling-hwasa { position: absolute; z-index: 1000; transition: top 0.4s cubic-bezier(0.5, 0, 0.8, 0.4), left 0.4s linear; }
+
+        @keyframes shake {
+            0%, 100% { transform: translate(0, 0) rotate(0deg); }
+            25% { transform: translate(-2px, 1px) rotate(-2deg); }
+            50% { transform: translate(2px, -1px) rotate(2deg); }
+            75% { transform: translate(-1px, 2px) rotate(-1deg); }
+        }
+
+        /* 抽卡動畫 */
+        @keyframes popIn {
+            0% { transform: scale(0.5); opacity: 0; }
+            70% { transform: scale(1.1); opacity: 1; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        #trash-can {
+            margin-top: 10px; width: 100%; padding: 12px; font-size: 1rem;
+            font-weight: bold; background-color: #e74c3c; color: white;
+            border: 2px dashed #c0392b; border-radius: 8px; box-shadow: inset 0 0 8px rgba(0,0,0,0.2);
+            text-align: center; user-select: none; box-sizing: border-box;
+        }
+
+        .btn-spawn {
+            padding: 12px; font-size: 1.1rem;
+            font-weight: bold; color: white; border: none; border-radius: 8px; 
+            user-select: none; -webkit-user-select: none; touch-action: none; cursor: pointer;
+        }
+        .btn-spawn:active { transform: translateY(4px); box-shadow: 0 0 0 !important; }
+
+        .modal-bg {
+            display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.7); z-index: 2000; justify-content: center; align-items: center;
+        }
+        .modal-container { background: white; padding: 15px; border-radius: 12px; width: 85%; max-height: 80%; overflow-y: auto; text-align: center; }
+        
+        .evo-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; margin-top: 15px; }
+        .evo-cell { aspect-ratio: 1; border-radius: 6px; display: flex; flex-direction: column; justify-content: center; align-items: center; font-size: 11px; font-weight: bold; box-shadow: 0 2px 4px rgba(0,0,0,0.1); cursor: pointer; position: relative;}
+        .evo-cell img { width: 85%; height: 85%; object-fit: contain; }
+
+        .panel-box { background: white; padding: 15px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); text-align: center; }
+        .btn-action { background: linear-gradient(45deg, #f1c40f, #f39c12); border: none; color: white; padding: 10px; width: 100%; font-size: 1rem; font-weight: bold; border-radius: 8px; margin-top: 8px; cursor: pointer; }
+        .btn-open { background: linear-gradient(45deg, #9b59b6, #8e44ad); }
+        .btn-special { background: linear-gradient(45deg, #ff4757, #ff6b81); }
+        .pack-inventory { font-size: 1rem; font-weight: bold; margin: 8px 0; color: #2c3e50; }
+        
+        #result-display { margin-top: 10px; min-height: 80px; max-height: 300px; overflow-y: auto; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 0.9rem; font-weight: bold; color: #e74c3c; border: 2px dashed #ccc; border-radius: 8px; background: #fafafa; padding: 10px;}
+        
+        .gallery-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; margin-top: 10px; }
+        .gallery-card { background: #eee; aspect-ratio: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 10px; color: #888; border-radius: 6px; text-align: center; padding: 2px; overflow: hidden; word-wrap: break-word;}
+        .gallery-card img { width: 90%; height: 90%; object-fit: contain; }
+        .gallery-card.unlocked { background: #4caf50; color: white; font-weight: bold; border: 2px solid #2e7d32; }
+
+        .tears-bar-container { width: 100%; background-color: #eee; border-radius: 10px; margin-top: 10px; overflow: hidden; border: 1px solid #ccc;}
+        .tears-bar { height: 15px; background-color: #3498db; width: 0%; transition: width 0.3s; }
+        
+        .set-title { font-weight: bold; margin-top: 15px; text-align: left; color: #2c3e50; border-bottom: 1px solid #ccc; padding-bottom: 5px; }
+
+        #transfer-code-input {
+            width: 100%; height: 100px; margin: 10px 0; padding: 10px; box-sizing: border-box; 
+            resize: none; font-size: 0.8rem; border-radius: 6px; border: 1px solid #ccc; font-family: monospace;
+        }
+
+        /* 說明書內部樣式：白底綠字與粗體標題 */
+        .help-content { color: var(--text-dark); text-align: left; line-height: 1.5; font-size: 0.95rem;}
+        .help-content p { margin: 10px 0; }
+        .help-content b { font-size: 1.05rem; display: block; margin-top: 12px; color: #2e7d32; }
+    </style>
+</head>
+<body>
+
+<div id="app-container">
+    <div class="top-bar">
+        <div class="coin-area">💰 <span id="coins">0</span></div>
+        <div id="log-area">MAMAMOO 宿舍開啟！</div>
+        
+        <!-- 右上角：說明按鈕與設定按鈕 -->
+        <div style="display: flex; gap: 8px; align-items: center;">
+            <button id="btn-help-global" class="btn-help" onclick="openHelp()">❓</button>
+            <button class="btn-settings" onclick="openSettings()">⚙️</button>
+        </div>
+    </div>
+
+    <div class="main-content">
+        <!-- 分頁 1：合成區 -->
+        <div id="page-merge" class="page active">
+            <div class="mission-panel">
+                <div class="mission-title">Lv.<span id="level-num">1</span> 任務</div>
+                <div class="task-list" id="task-list"></div>
+            </div>
+
+            <div class="board-container">
+                <div class="board" id="game-board"></div>
+            </div>
+            
+            <div id="trash-can">🗑️ 拖曳至此出售</div>
+            
+            <div style="display: flex; gap: 8px; margin-top: 10px; width: 100%;">
+                <button class="btn-spawn" style="flex: 1; background-color: #3498db; box-shadow: 0 4px 0 #2980b9;" onclick="sortBoard()">🧹 一鍵整理</button>
+                <button class="btn-spawn" id="btn-spawn" style="flex: 2; background-color: var(--primary); box-shadow: 0 4px 0 #2e7d32;">⬇️ 長按連續召喚</button>
+            </div>
+        </div>
+
+        <!-- 分頁 2：商店 -->
+        <div id="page-shop" class="page">
+            <div class="panel-box">
+                <h2>🛒 盲盒商店</h2>
+                <button class="btn-action" onclick="buyPack(5000, 'small')">買【小卡包】(10張 / 5000 💰)</button>
+                <button class="btn-action" onclick="buyPack(8000, 'large')">買【大卡包】(20張 / 8000 💰)</button>
+                <button class="btn-action btn-special" onclick="buyPack(10000, 'surprise')">買【驚喜卡包】(3張 / 10000 💰)</button>
+            </div>
+        </div>
+
+        <!-- 分頁 3：拆卡 -->
+        <div id="page-open" class="page">
+            <div class="panel-box">
+                <h2>✨ 拆卡區</h2>
+                <div class="pack-inventory">📦 小卡包：<span id="inv-small" style="color:#e74c3c;">0</span> 包</div>
+                <button class="btn-action btn-open" onclick="openPack('small')">撕開【小卡包】</button>
+                <hr style="border:0; border-top:1px solid #eee; margin:10px 0;">
+                
+                <div class="pack-inventory">📦 大卡包：<span id="inv-large" style="color:#e74c3c;">0</span> 包</div>
+                <button class="btn-action btn-open" onclick="openPack('large')">撕開【大卡包】</button>
+                <hr style="border:0; border-top:1px solid #eee; margin:10px 0;">
+
+                <div class="pack-inventory">🎁 驚喜卡包：<span id="inv-surprise" style="color:#e74c3c;">0</span> 包</div>
+                <button class="btn-action btn-special" onclick="openPack('surprise')">撕開【驚喜卡包】</button>
+                
+                <div style="margin-top: 15px; font-size: 0.9rem; font-weight: bold;">💧 木木的眼淚 (<span id="tears-count">0</span>/30)</div>
+                <div class="tears-bar-container"><div class="tears-bar" id="tears-bar"></div></div>
+            </div>
+            <div id="result-display">等待拆卡...</div>
+        </div>
+
+        <!-- 分頁 4：圖鑑 -->
+        <div id="page-gallery" class="page">
+            <div class="panel-box">
+                <h2>📚 收集度 (<span id="gallery-unlocked">0</span>/<span id="gallery-total">0</span>)</h2>
+                <div style="margin-bottom: 15px; font-weight: bold; color: #e74c3c;">
+                    🃏 擁有的自選卡：<span id="choice-cards">0</span> 張
+                    <button class="btn-action" style="padding: 5px; font-size: 0.9rem; margin-top: 5px;" onclick="useChoiceCard()">使用自選卡</button>
+                </div>
+                <div id="gallery-container"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 導航 -->
+    <div class="bottom-nav">
+        <button class="nav-btn active" onclick="switchTab('merge', this)">🧩 合成</button>
+        <button class="nav-btn" onclick="switchTab('shop', this)">🛒 商店</button>
+        <button class="nav-btn" onclick="switchTab('open', this)">✨ 拆卡</button>
+        <button class="nav-btn" onclick="switchTab('gallery', this)">📚 圖鑑</button>
+    </div>
+
+    <div id="evo-modal" class="modal-bg" onclick="closeModal()">
+        <div class="modal-container" id="modal-content" onclick="event.stopPropagation()">
+            <h3 id="modal-title" style="margin:0; color:#2c3e50;"></h3>
+            <p id="modal-desc" style="font-size:0.8rem; color:#888; margin:5px 0;">點擊外面關閉</p>
+            <div class="evo-grid" id="modal-grid"></div>
+        </div>
+    </div>
+
+    <!-- ⚙️ 全新設定選單 -->
+    <div id="settings-modal" class="modal-bg" onclick="closeSettings()">
+        <div class="modal-container" onclick="event.stopPropagation()">
+            <!-- 主選單 -->
+            <div id="settings-menu">
+                <h3 style="margin:0 0 15px 0; color:#2c3e50;">⚙️ 設定</h3>
+                <button class="btn-action" onclick="showTransferMenu()">🔄 進度轉移 (引繼碼)</button>
+                <button class="btn-action" style="background: linear-gradient(45deg, #00acc1, #00bcd4);" onclick="showUpdateLog()">📜 版本更新日誌</button>
+                <button class="btn-action btn-special" onclick="showCredits()">📝 Credits</button>
+                <hr style="border:0; border-top:1px solid #eee; margin:15px 0;">
+                <button class="btn-action" style="background:#95a5a6; padding:8px;" onclick="closeSettings()">關閉</button>
+            </div>
+            
+            <!-- 進度轉移畫面 -->
+            <div id="settings-transfer" style="display:none;">
+                <h3 style="margin:0; color:#2c3e50;">🔄 進度轉移</h3>
+                <p style="font-size:0.8rem; color:#888; margin:5px 0;">本遊戲會自動儲存於瀏覽器內。<br>若要更換設備，請在此複製引繼碼。</p>
+                <textarea id="transfer-code-input" placeholder="若要讀取舊進度，請在此貼上引繼碼..."></textarea>
+                <button class="btn-action btn-open" onclick="generateTransferCode()">📤 產生引繼碼 (匯出進度)</button>
+                <button class="btn-action btn-special" onclick="applyTransferCode()">📥 讀取引繼碼 (匯入進度)</button>
+                <button class="btn-action" style="background:#95a5a6; padding:8px; margin-top:15px;" onclick="backToSettings()">返回</button>
+            </div>
+
+            <!-- 📜 版本更新日誌畫面 -->
+            <div id="settings-update-log" style="display:none; text-align:left;">
+                <h3 style="margin:0 0 10px 0; color:#2c3e50; text-align:center;">📜 更新日誌</h3>
+                <div style="max-height:50vh; overflow-y:auto; padding: 0 5px;">
+                    
+                    <!-- 👇 未來新增日誌就複製這一個區塊 👇 -->
+                    <div style="margin-bottom: 10px;">
+                        <button onclick="toggleLog('log-20260823')" style="width:100%; text-align:left; padding:10px; font-weight:bold; background:#e0f7fa; color:#00838f; border:none; border-radius:5px; cursor:pointer;">
+                            📅 2026.08.23 20:00 
+                        </button>
+                        <div id="log-20260823" style="display:none; padding:10px; background:#f9f9f9; border-left:3px solid #00acc1; font-size:14px; margin-top:5px; color:#333;">
+                            新增彩蛋—本彩蛋為有聲彩蛋，請注意手機音量。 (彩蛋提示:引繼碼)
+                        </div>
+                    </div>
+                    <!-- 👆 新增日誌區塊結束 👆 -->
+                    
+                </div>
+                <button class="btn-action" style="background:#95a5a6; padding:8px; margin-top:15px;" onclick="backToSettings()">返回</button>
+            </div>
+
+            <!-- Credits 畫面 -->
+            <div id="settings-credits" style="display:none; text-align:left;">
+                <h3 style="margin:0 0 10px 0; color:#2c3e50; text-align:center;">📝 Credits</h3>
+                <div style="font-size:0.85rem; color:#555; max-height:50vh; overflow-y:auto; line-height:1.4; padding: 0 5px;">
+                    <p style="margin-top:0;"><b>作者碎碎念:</b><br>其實就是想玩圖鑑蒐集遊戲但是找不到喜歡的所以想說自己搞吧。一開始還很笨想說每個人放五六百張的話那我乾脆手動抓，還好我有先去查。Gallery-dl真的是個好東西，推薦大家使用，八千多張照片幾十分鐘就自動下載好了。但篩選我真的不知道Python能不能，我覺得不行，所以就手動挑了。結果很崩潰啊，安黑金小姐太多背對的照片了；丁輝妮放的全是勾某，很怕她們兩個照片不夠。合照的部分也是手動查重的，有重複敬請見諒。<br><br>如果你很好心的想提供我建議，可以私訊moomoo_sh3d的threads。</p>
+                    <p><b>credits</b><br>槓龜圖：ETtoday<br>圖鑑圖片：<br>solarkeem<br>mo_onbyul<br>whee_inthemood<br>_mariahwasa</p>
+                    <p><b>特別感謝</b><br>Gallery-dl<br>Gemini</p>
+                </div>
+                <button class="btn-action" style="background:#95a5a6; padding:8px; margin-top:15px;" onclick="backToSettings()">返回</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 📖 遊戲說明書彈窗 -->
+    <div id="help-modal" class="modal-bg" style="z-index: 3000;" onclick="closeHelp()">
+        <div class="modal-container" style="background: white;" onclick="event.stopPropagation()">
+            <h3 style="margin-top:0; color: #2e7d32; border-bottom: 2px solid #eee; padding-bottom: 10px;">遊戲說明</h3>
+            <div id="help-content-box" class="help-content" style="max-height: 60vh; overflow-y: auto;">
+                <!-- 內容由 JS 動態塞入 -->
+            </div>
+            <button class="btn-action" style="background: var(--primary); padding: 8px; margin-top: 15px;" onclick="closeHelp()">我知道了！</button>
+        </div>
+    </div>
+
+    <!-- ✨ 沈浸式抽卡彈窗 -->
+    <div id="reveal-modal" class="modal-bg" style="z-index: 4000; background: rgba(0,0,0,0.92); flex-direction: column;" onclick="nextReveal()">
+        <div style="position: absolute; top: 20px; right: 20px;">
+            <button onclick="skipReveal(event)" style="background: rgba(255,255,255,0.2); border: none; color: white; padding: 6px 16px; border-radius: 20px; font-weight: bold; font-size: 1rem; cursor: pointer;">跳過 >></button>
+        </div>
+        <div id="reveal-count" style="color: #ccc; font-weight: bold; font-size: 1.2rem; margin-bottom: 20px;">1 / 10</div>
+        <div id="reveal-card" style="text-align: center;">
+            <!-- 卡片內容在此動態顯示 -->
+        </div>
+        <div style="margin-top: 30px; font-size: 1rem; color: #aaa; animation: shake 2s infinite;">(點擊畫面翻開下一張)</div>
+    </div>
+
+    <!-- 🖼️ 圖鑑大圖檢視視窗 -->
+    <div id="image-modal" class="modal-bg" style="z-index: 5000; background: rgba(0,0,0,0.85);" onclick="closeImageModal()">
+        <img id="enlarged-img" src="" style="max-width: 90%; max-height: 85%; object-fit: contain; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.5);" onclick="event.stopPropagation()">
+        <div style="position: absolute; top: 15px; right: 20px; color: white; font-size: 2.5rem; font-weight: bold; cursor: pointer; text-shadow: 0 2px 4px rgba(0,0,0,0.5);">&times;</div>
+    </div>
+</div>
+
+    <script>
+        let gameCardSets = {};
+        if (typeof cardSets !== 'undefined') {
+            gameCardSets = cardSets; 
+        } else {
+            gameCardSets = { "等待圖片載入中": [] };
+        }
+
+        let coins = 0;
+        let inventory = { small: 0, large: 0, surprise: 0 };
+        let tears = 0;
+        let choiceCards = 0;
+        let galleryData = []; 
+        let claimedSets = new Set(); 
+
+        const BOARD_SIZE = 64;
+        let board = new Array(BOARD_SIZE).fill(null);
+        const chars = [ { id: 'solar', name: '金容容' }, { id: 'moon', name: '文星星' }, { id: 'whee', name: '丁輝妮' }, { id: 'hwa', name: '黑金妮' } ];
+
+        let currentLevel = 1;
+        let currentMissionData = null;
+        let hwasaTimerId = null;
+        let bossActive = false; 
+
+        function initGalleryData() {
+            let idCounter = 0;
+            for (let setName in gameCardSets) {
+                gameCardSets[setName].forEach(path => {
+                    galleryData.push({
+                        id: 'card_' + idCounter++,
+                        set: setName,
+                        path: path,
+                        name: path.split('/').pop(),
+                        unlocked: false
+                    });
+                });
+            }
+        }
+
+        function getCpImageName(char1, char2) {
+            const pair = [char1, char2].sort().join('_');
+            const cpMap = {
+                'moon_solar': 'moon_solar', 
+                'solar_whee': 'solar_whee', 
+                'hwa_solar': 'hwa_solar',   
+                'moon_whee': 'moon_whee',   
+                'hwa_moon': 'hwa_moon',     
+                'hwa_whee': 'hwa_whee'      
+            };
+            return cpMap[pair] || pair;
+        }
+
+        function switchTab(pageId, btn) {
+            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+            document.getElementById('page-' + pageId).classList.add('active');
+            document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+
+            // 控制說明按鈕：只在合成區(merge)跟商店(shop)顯示
+            const helpBtn = document.getElementById('btn-help-global');
+            if (pageId === 'merge' || pageId === 'shop') {
+                helpBtn.style.display = 'flex';
+            } else {
+                helpBtn.style.display = 'none';
+            }
+        }
+        
+        function logMsg(msg) {
+            const el = document.getElementById('log-area');
+            el.innerText = msg; setTimeout(() => { el.innerText = 'MAMAMOO 宿舍'; }, 3000);
+        }
+
+        // --- 📖 說明書功能 ---
+        function openHelp() {
+            const isMerge = document.getElementById('page-merge').classList.contains('active');
+            const box = document.getElementById('help-content-box');
+            
+            if (isMerge) {
+                box.innerHTML = `
+                    <p><b>飢餓黑金妮</b><br>盤面會不定時掉落飢餓的黑金妮，請餵飽她(拖曳Lv.5以下的元素給她吃)，不然她會把你盤面上Lv.8(含)以下、等級最高的東西吃掉!</p>
+                    <p><b>迷你咩咩木</b><br>合成兩個Lv.4或兩個Lv.5的時候有可能產生迷你咩咩木。連續點擊50下打敗她們!</p>
+                    <p><b>CP</b><br>任意兩個Lv.12的成員可以組合出CP。</p>
+                    <p><b>咩咩木全員</b><br>任意兩組成員不重複的CP可以組合出咩咩木全員。</p>
+                    <p><b>出售</b><br>出售等級N的元素，可獲得 (2^(N-1)+N)*10 的金幣。</p>
+                    <p><b>一鍵整理</b><br>從Leader到忙內、等級低到等級高幫你排好。</p>
+                    <p><b>引繼碼</b><br>在設定中可以找到，複製引繼碼以免進度遺失、或是轉移到不同裝置遊玩。</p>
+                `;
+            } else {
+                box.innerHTML = `
+                    <p><b>驚喜包</b><br>每張驚喜包含有三張卡，每張卡有5%的機率是自選卡；若沒抽中則會累積成「木木的眼淚」，集滿30滴一樣可以換一張自選卡!</p>
+                `;
+            }
+            document.getElementById('help-modal').style.display = 'flex';
+        }
+        function closeHelp() { document.getElementById('help-modal').style.display = 'none'; }
+
+        // --- 💾 全自動本機存檔系統 ---
+        function saveLocalData() {
+            try {
+                const charList = ['solar', 'moon', 'whee', 'hwa'];
+                const setList = Object.keys(gameCardSets);
+
+                let bStr = [];
+                board.forEach((item, idx) => {
+                    if (!item) return;
+                    if (item.type === 'member') {
+                        bStr.push(`${idx}:m${charList.indexOf(item.char)}${item.level}`);
+                    } else if (item.type === 'cp') {
+                        bStr.push(`${idx}:c${charList.indexOf(item.char1)}${charList.indexOf(item.char2)}`);
+                    } else if (item.type === 'final') {
+                        bStr.push(`${idx}:f`);
+                    }
+                });
+                const compactBoard = bStr.join('-'); 
+                const compactSets = Array.from(claimedSets).map(s => setList.indexOf(s)).filter(i => i >= 0).join('-');
+                const compactGallery = galleryData.map(c => c.unlocked ? 1 : 0).join('');
+                const mStr = currentMissionData ? btoa(encodeURIComponent(JSON.stringify(currentMissionData))) : "";
+
+                const rawStr = `${coins}|${inventory.small},${inventory.large},${inventory.surprise}|${tears}|${choiceCards}|${currentLevel}|${compactSets}|${compactBoard}|${compactGallery}|${mStr}`;
+                localStorage.setItem('mamamoo_save', rawStr);
+            } catch (e) {
+                console.error("Auto-save failed");
+            }
+        }
+
+        function loadLocalData() {
+            const rawStr = localStorage.getItem('mamamoo_save');
+            if (!rawStr) return false;
+            try {
+                const parts = rawStr.split('|');
+                if (parts.length < 8) return false;
+
+                const charList = ['solar', 'moon', 'whee', 'hwa'];
+                const setList = Object.keys(gameCardSets);
+                
+                coins = parseInt(parts[0]) || 0;
+                let invParts = parts[1].split(',');
+                inventory = { 
+                    small: parseInt(invParts[0]) || 0, 
+                    large: parseInt(invParts[1]) || 0, 
+                    surprise: parseInt(invParts[2]) || 0 
+                };
+                tears = parseInt(parts[2]) || 0;
+                choiceCards = parseInt(parts[3]) || 0;
+                currentLevel = parseInt(parts[4]) || 1;
+                
+                claimedSets.clear();
+                if (parts[5]) {
+                    parts[5].split('-').forEach(idx => {
+                        let sName = setList[parseInt(idx)];
+                        if (sName) claimedSets.add(sName);
+                    });
+                }
+                
+                board = new Array(BOARD_SIZE).fill(null);
+                if (parts[6]) {
+                    parts[6].split('-').forEach(bItem => {
+                        let [idxStr, valStr] = bItem.split(':');
+                        let idx = parseInt(idxStr);
+                        if (valStr.startsWith('m')) {
+                            board[idx] = { type: 'member', char: charList[parseInt(valStr[1])], level: parseInt(valStr.substring(2)) };
+                        } else if (valStr.startsWith('c')) {
+                            board[idx] = { type: 'cp', char1: charList[parseInt(valStr[1])], char2: charList[parseInt(valStr[2])] };
+                        } else if (valStr === 'f') {
+                            board[idx] = { type: 'final' };
+                        }
+                    });
+                }
+                
+                if (parts[7]) {
+                    galleryData.forEach((c, idx) => {
+                        c.unlocked = (parts[7][idx] === '1');
+                    });
+                }
+                
+                if (parts.length > 8 && parts[8]) {
+                    currentMissionData = JSON.parse(decodeURIComponent(atob(parts[8])));
+                } else {
+                    currentMissionData = generateMissionsForLevel(currentLevel);
+                }
+                
+                bossActive = false;
+                return true;
+            } catch (e) {
+                return false;
+            }
+        }
+
+        // --- ⚙️ 設定系統 (含 Credits) ⚙️ ---
+        function openSettings() {
+            document.getElementById('settings-menu').style.display = 'block';
+            document.getElementById('settings-transfer').style.display = 'none';
+            document.getElementById('settings-credits').style.display = 'none';
+            document.getElementById('settings-update-log').style.display = 'none';
+            document.getElementById('settings-modal').style.display = 'flex';
+        }
+        function closeSettings() { 
+            document.getElementById('settings-modal').style.display = 'none'; 
+        }
+        function showTransferMenu() {
+            document.getElementById('settings-menu').style.display = 'none';
+            document.getElementById('settings-transfer').style.display = 'block';
+            document.getElementById('transfer-code-input').value = '';
+        }
+        function showCredits() {
+            document.getElementById('settings-menu').style.display = 'none';
+            document.getElementById('settings-credits').style.display = 'block';
+        }
+        function showUpdateLog() {
+            document.getElementById('settings-menu').style.display = 'none';
+            document.getElementById('settings-update-log').style.display = 'block';
+        }
+        function toggleLog(logId) {
+            let content = document.getElementById(logId);
+            content.style.display = (content.style.display === "none") ? "block" : "none";
+        }
+        function backToSettings() {
+            document.getElementById('settings-transfer').style.display = 'none';
+            document.getElementById('settings-credits').style.display = 'none';
+            document.getElementById('settings-update-log').style.display = 'none';
+            document.getElementById('settings-menu').style.display = 'block';
+        }
+
+        function generateTransferCode() {
+            saveLocalData();
+            const rawStr = localStorage.getItem('mamamoo_save');
+            if (rawStr) {
+                const inputEl = document.getElementById('transfer-code-input');
+                inputEl.value = btoa(rawStr);
+                inputEl.select(); 
+                logMsg("✅ 成功產生！這已是壓縮極限！");
+            } else {
+                logMsg("❌ 產生引繼碼失敗！");
+            }
+        }
+
+        function applyTransferCode() {
+            const code = document.getElementById('transfer-code-input').value.trim();
+            if (!code) { logMsg("⚠️ 請先貼上引繼碼！"); return; }
+
+            // 🎉 彩蛋 001：MAMAMOO 終極密碼
+            let checkCode = code.toUpperCase(); 
+            if (checkCode === "MAMAMOO" || checkCode === "20140619" || checkCode === "Mamamoo" || checkCode === "mamamoo") {
+                // 🔊 播放彩蛋音效 (每次輸入皆會播放)
+                let easterEggAudio = new Audio('audios/mamamoo_greeting.mp3'); 
+                easterEggAudio.play().catch(err => console.log("音效播放被阻擋", err));
+
+                // 每次都顯示相同的提示文字 (不帶音符 emoji)
+                logMsg("I say MAMA MAMA MOO~");
+
+                // 檢查內部紀錄編號 egg_001 是否已領取過獎勵
+                let claimedEgg001 = localStorage.getItem('claimed_egg_001');
+                if (!claimedEgg001) {
+                    coins += 6190;
+                    localStorage.setItem('claimed_egg_001', 'true');
+                    updateShopUI();
+                }
+
+                document.getElementById('transfer-code-input').value = "";
+                backToSettings();
+                closeSettings();
+                return;
+            }
+
+            try {
+                const rawStr = atob(code);
+                localStorage.setItem('mamamoo_save', rawStr);
+                loadLocalData();
+                updateShopUI();
+                updateGalleryUI();
+                updateBoard();
+                backToSettings();
+                closeSettings();
+                logMsg("🎉 進度讀取成功！歡迎回來！");
+            } catch (e) {
+                logMsg("❌ 引繼碼損毀或版本不符，讀取失敗！");
+            }
+        }
+
+        // --- 🖼️ 圖片放大功能 ---
+        function openImageModal(src) {
+            document.getElementById('enlarged-img').src = src;
+            document.getElementById('image-modal').style.display = 'flex';
+        }
+        function closeImageModal() {
+            document.getElementById('image-modal').style.display = 'none';
+            document.getElementById('enlarged-img').src = '';
+        }
+
+        // --- 無限任務生成 ---
+        function generateMissionsForLevel(level) {
+            let taskCount = Math.floor(Math.random() * 3) + 1; 
+            let tasks = [];
+            
+            for (let i = 0; i < taskCount; i++) {
+                let isCP = (level > 10 && Math.random() < 0.05); 
+                
+                if (isCP) {
+                    tasks.push({ id: 't' + i, text: "合成 1 組任意 CP", char: 'cp', targetLevel: 0, count: 1, reward: 50000, done: false });
+                } else {
+                    let charId = chars[Math.floor(Math.random() * chars.length)].id;
+                    let maxLvl = Math.min(12, Math.max(3, Math.floor(level / 2) + 2));
+                    let minLvl = Math.max(2, maxLvl - 3);
+                    let targetLvl = Math.floor(Math.random() * (maxLvl - minLvl + 1)) + minLvl;
+                    let count = (targetLvl <= 5) ? Math.floor(Math.random() * 3) + 1 : 1; 
+                    
+                    let baseReward = Math.pow(2, targetLvl - 1) * 50; 
+                    let reward = baseReward * count;
+                    reward = Math.floor(reward * (0.8 + Math.random() * 0.4)); 
+                    reward = Math.ceil(reward / 50) * 50; 
+
+                    tasks.push({ id: 't' + i, text: `${count} 個 ${getCharName(charId)} Lv.${targetLvl}`, char: charId, targetLevel: targetLvl, count: count, reward: reward, done: false });
+                }
+            }
+            return { level: level, tasks: tasks };
+        }
+
+        function initBoard() {
+            const boardEl = document.getElementById('game-board');
+            boardEl.innerHTML = '';
+            for (let i = 0; i < BOARD_SIZE; i++) {
+                const cell = document.createElement('div');
+                cell.className = 'cell';
+                cell.dataset.index = i;
+                cell.addEventListener('pointerdown', handlePointerDown);
+                boardEl.appendChild(cell);
+            }
+            if (!currentMissionData) currentMissionData = generateMissionsForLevel(currentLevel);
+            updateBoard();
+            setInterval(triggerRandomEvent, 30000);
+            initSpawnButton();
+        }
+
+        // 🧹 一鍵整理盤面 
+        function sortBoard() {
+            if (bossActive || board.some(i => i && i.type === 'hungry')) {
+                logMsg("🚨 特殊事件中無法整理盤面！");
+                return;
+            }
+
+            let members = [];
+            let cps = [];
+            let finals = [];
+            
+            board.forEach(item => {
+                if (!item) return;
+                if (item.type === 'member') members.push(item);
+                else if (item.type === 'cp') cps.push(item);
+                else if (item.type === 'final') finals.push(item);
+            });
+
+            const charOrder = { 'solar': 1, 'moon': 2, 'whee': 3, 'hwa': 4 };
+            members.sort((a, b) => {
+                if (charOrder[a.char] !== charOrder[b.char]) {
+                    return charOrder[a.char] - charOrder[b.char];
+                }
+                return a.level - b.level;
+            });
+
+            board = new Array(BOARD_SIZE).fill(null);
+            let idx = 0;
+            members.forEach(m => board[idx++] = m);
+            cps.forEach(c => board[idx++] = c);
+            finals.forEach(f => board[idx++] = f);
+
+            updateBoard();
+            logMsg("🧹 盤面已自動為您整理！");
+        }
+
+        function updateBoard() {
+            const cells = document.querySelectorAll('.cell');
+            cells.forEach((cell, index) => {
+                const item = board[index];
+                cell.className = 'cell';
+                cell.innerHTML = '';
+                cell.style.opacity = '1';
+                cell.style.animation = 'none'; 
+                
+                cell.style.touchAction = item ? 'none' : 'auto';
+                
+                if (!item || item.type !== 'boss_part') {
+                    cell.style.display = 'flex';
+                    cell.style.gridColumn = 'span 1';
+                    cell.style.gridRow = 'span 1';
+                    cell.style.aspectRatio = '1';
+                } else {
+                    cell.style.display = 'none'; 
+                }
+                
+                if (item) {
+                    if (item.type === 'member') {
+                        cell.innerHTML = `<img src="images/board/${item.char}_${item.level}.jpg" onerror="this.src='';this.alt='找不到圖'">`;
+                    } else if (item.type === 'cp') {
+                        let cpName = getCpImageName(item.char1, item.char2);
+                        cell.innerHTML = `<img src="images/board/cp_${cpName}.jpg" onerror="this.src='';this.alt='CP'">`;
+                    } else if (item.type === 'final') {
+                        cell.innerHTML = `<img src="images/board/final_mamamoo.jpg" onerror="this.src='';this.alt='完全體'">`;
+                    } else if (item.type === 'hungry') {
+                        cell.style.animation = 'shake 0.5s infinite';
+                        cell.innerHTML = `
+                            <img src="images/board/hungry_hwa.jpg" onerror="this.src='';this.alt='飢餓華莎'">
+                            <div class="badge-overlay">${item.timeLeft}s</div>
+                        `;
+                    } else if (item.type === 'boss') {
+                        cell.style.gridColumn = 'span 2';
+                        cell.style.gridRow = 'span 2';
+                        cell.style.aspectRatio = 'auto'; 
+                        cell.style.cursor = 'pointer';
+                        cell.innerHTML = `
+                            <img src="images/board/${item.id}.jpg" onerror="this.src='';this.alt='Boss'">
+                            <div class="badge-overlay" style="font-size: 14px; bottom: 5px; right: 5px; background: rgba(231, 76, 60, 0.9);">HP: ${item.hp}</div>
+                        `;
+                    }
+                }
+            });
+            document.getElementById('coins').innerText = coins;
+            updateTaskUI(); 
+            saveLocalData(); 
+        }
+
+        function updateTaskUI() {
+            const taskList = document.getElementById('task-list');
+            taskList.innerHTML = '';
+            document.getElementById('level-num').innerText = currentMissionData.level;
+            
+            currentMissionData.tasks.forEach((task, index) => {
+                const div = document.createElement('div');
+                div.className = 'task-item';
+                
+                let currentCount = 0;
+                if (task.char === 'cp') {
+                    currentCount = board.filter(i => i && i.type === 'cp').length;
+                } else {
+                    currentCount = board.filter(i => i && i.type === 'member' && i.char === task.char && i.level === task.targetLevel).length;
+                }
+                
+                if (task.done) currentCount = task.count; 
+
+                let iconHtml = '';
+                if (task.char === 'cp') {
+                    iconHtml = `<div style="width:40px; height:40px; display:flex; justify-content:center; align-items:center; background:#e1bee7; border-radius:6px; margin-right:10px; border:2px dashed #9c27b0; font-size:12px; font-weight:bold; color:#4a148c; flex-shrink:0;">CP</div>`;
+                } else {
+                    iconHtml = `<img src="images/board/${task.char}_${task.targetLevel}.jpg" style="width:40px; height:40px; object-fit:cover; border-radius:6px; margin-right:10px; background:#fff; flex-shrink:0; box-shadow:0 1px 3px rgba(0,0,0,0.2);" onerror="this.src='';this.alt='圖'">`;
+                }
+
+                let textContent = `
+                    <div style="display:flex; align-items:center; flex:1;">
+                        ${iconHtml}
+                        <div style="display:flex; flex-direction:column; justify-content:center;">
+                            <span style="font-size:0.9rem; ${task.done ? 'text-decoration:line-through; color:#aaa;' : 'font-weight:bold; color:#2c3e50;'}">${task.text} (${currentCount}/${task.count})</span>
+                            <span style="font-size:0.8rem; color:#f39c12; font-weight:bold; margin-top:2px;">獎勵: ${task.reward} 💰</span>
+                        </div>
+                    </div>
+                `;
+                
+                if (task.done) {
+                    div.innerHTML = `${textContent}<span class="task-done">✔️</span>`;
+                } else {
+                    let isReady = currentCount >= task.count;
+                    div.innerHTML = textContent;
+                    const btn = document.createElement('button');
+                    btn.className = 'btn-submit ' + (isReady ? 'ready' : '');
+                    btn.innerText = '✔️提交';
+                    if (isReady) btn.onclick = () => submitTask(index);
+                    div.appendChild(btn);
+                }
+                taskList.appendChild(div);
+            });
+        }
+
+        function submitTask(taskIndex) {
+            const task = currentMissionData.tasks[taskIndex];
+            let removedCount = 0;
+            for (let i = 0; i < BOARD_SIZE; i++) {
+                let item = board[i];
+                if (!item) continue;
+                let match = false;
+                if (task.char === 'cp' && item.type === 'cp') match = true;
+                else if (item.type === 'member' && item.char === task.char && item.level === task.targetLevel) match = true;
+                
+                if (match) {
+                    board[i] = null;
+                    removedCount++;
+                    if (removedCount >= task.count) break;
+                }
+            }
+            task.done = true; coins += task.reward; logMsg(`提交成功！獲得 ${task.reward}💰`);
+            
+            if (currentMissionData.tasks.every(t => t.done)) {
+                setTimeout(() => { 
+                    currentLevel++; 
+                    currentMissionData = generateMissionsForLevel(currentLevel);
+                    logMsg(`🎉 關卡升級！進入 Lv.${currentLevel}`); 
+                    updateBoard(); 
+                }, 500);
+            }
+            updateBoard();
+        }
+
+        let dragSourceIdx = -1;
+        let ghostEl = null;
+        let isDragging = false;
+        let startX = 0, startY = 0;
+        const appContainer = document.getElementById('app-container');
+
+        function handlePointerDown(e) {
+            const index = parseInt(e.currentTarget.dataset.index);
+            if (!board[index]) return; 
+            if (board[index].type === 'boss') { hitBoss(index); e.preventDefault(); return; }
+            if (bossActive) return; 
+
+            dragSourceIdx = index;
+            isDragging = false;
+            startX = e.clientX; startY = e.clientY;
+
+            const appRect = appContainer.getBoundingClientRect();
+            ghostEl = document.createElement('div');
+            ghostEl.className = e.currentTarget.className + ' ghost';
+            ghostEl.innerHTML = e.currentTarget.innerHTML;
+            ghostEl.style.width = e.currentTarget.offsetWidth + 'px';
+            ghostEl.style.height = e.currentTarget.offsetHeight + 'px';
+            ghostEl.style.left = (e.clientX - appRect.left) + 'px';
+            ghostEl.style.top = (e.clientY - appRect.top) + 'px';
+            ghostEl.style.animation = 'none';
+            appContainer.appendChild(ghostEl);
+
+            e.currentTarget.style.opacity = '0.3'; 
+
+            document.addEventListener('pointermove', handlePointerMove);
+            document.addEventListener('pointerup', handlePointerUp);
+            e.currentTarget.releasePointerCapture(e.pointerId); 
+        }
+
+        function handlePointerMove(e) {
+            if (ghostEl) {
+                const appRect = appContainer.getBoundingClientRect();
+                ghostEl.style.left = (e.clientX - appRect.left) + 'px';
+                ghostEl.style.top = (e.clientY - appRect.top) + 'px';
+                if (Math.abs(e.clientX - startX) > 5 || Math.abs(e.clientY - startY) > 5) isDragging = true;
+            }
+        }
+
+        function handlePointerUp(e) {
+            document.removeEventListener('pointermove', handlePointerMove);
+            document.removeEventListener('pointerup', handlePointerUp);
+            if (ghostEl) { ghostEl.remove(); ghostEl = null; }
+            updateBoard(); 
+
+            if (!isDragging) { openEvoChart(dragSourceIdx); dragSourceIdx = -1; return; }
+
+            const elements = document.elementsFromPoint(e.clientX, e.clientY);
+            
+            const dropTrash = elements.find(el => el.id === 'trash-can');
+            if (dropTrash && dragSourceIdx !== -1) {
+                const item = board[dragSourceIdx];
+                if (item) {
+                    let effectiveLevel = 0;
+                    let itemName = "";
+
+                    // 1. 判定實際等級與名稱
+                    if (item.type === 'member') {
+                        effectiveLevel = item.level;
+                        itemName = `Lv.${item.level} 卡片`;
+                    } else if (item.type === 'cp') {
+                        effectiveLevel = 13;
+                        itemName = "CP (等同 Lv.13)";
+                    } else if (item.type === 'final') {
+                        effectiveLevel = 14;
+                        itemName = "完全體 (等同 Lv.14)";
+                    }
+
+                    if (effectiveLevel > 0) {
+                        // 2. 🛡️ 防呆機制：如果是 Lv.8 (含) 以上，跳出確認視窗
+                        if (effectiveLevel >= 7) {
+                            let confirmSell = confirm(`⚠️ 警告！你即將出售珍貴的【${itemName}】！\n確定要賣掉嗎？`);
+                            if (!confirmSell) {
+                                logMsg("✅ 已取消出售，卡片安全回到盤面！");
+                                dragSourceIdx = -1;
+                                updateBoard();
+                                return; // 玩家按取消，中止出售程序
+                            }
+                        }
+
+                        // 3. 💰 套用原本的精密公式計算金額： (2^(N-1) + N) * 10
+                        const earn = (Math.pow(2, effectiveLevel - 1) + effectiveLevel) * 10;
+                        coins += earn;
+                        board[dragSourceIdx] = null;
+                        logMsg(`🗑️ 出售成功！獲得 ${earn} 💰`);
+                    } else {
+                        logMsg(`⚠️ 這個特殊物件無法出售！`);
+                    }
+                }
+                dragSourceIdx = -1;
+                updateBoard();
+                return;
+            }
+
+            const dropTarget = elements.find(el => el.classList.contains('cell') && el.dataset.index);
+            if (dropTarget) {
+                const dropIdx = parseInt(dropTarget.dataset.index);
+                if (dropIdx !== dragSourceIdx) executeMerge(dragSourceIdx, dropIdx);
+            }
+            dragSourceIdx = -1;
+        }
+        
+        function findEmpty2x2() {
+            let validSpots = [];
+            for (let r = 0; r < 7; r++) { 
+                for (let c = 0; c < 7; c++) { 
+                    let i1 = r * 8 + c;
+                    if (!board[i1] && !board[i1+1] && !board[i1+8] && !board[i1+9]) validSpots.push(i1);
+                }
+            }
+            return validSpots.length > 0 ? validSpots[Math.floor(Math.random() * validSpots.length)] : -1;
+        }
+
+        function executeMerge(srcIdx, targetIdx) {
+            const srcItem = board[srcIdx];
+            const targetItem = board[targetIdx];
+
+            if (!targetItem) { board[targetIdx] = srcItem; board[srcIdx] = null; updateBoard(); return; }
+
+            if ((targetItem.type === 'hungry' && srcItem.type === 'member') || (srcItem.type === 'hungry' && targetItem.type === 'member')) {
+                // 先抓出被餵食的成員是誰，以及黑金妮在哪一格
+                let memberItem = srcItem.type === 'member' ? srcItem : targetItem;
+                let hungryIdx = targetItem.type === 'hungry' ? targetIdx : srcIdx;
+                
+                // 檢查等級是不是超過 5
+                if (memberItem.level > 5) {
+                    logMsg("⚠️ 黑金妮拒吃太高級的！重新計時 10 秒！");
+                    board[hungryIdx].timeLeft = 10; // 把黑金妮的秒數重置為 10
+                    updateBoard(); // 讓卡片彈回原位，並更新秒數顯示
+                    return;
+                }
+                
+                // 等級 5 以下才允許吃掉
+                board[targetIdx] = null; board[srcIdx] = null; clearInterval(hwasaTimerId); coins += 200; logMsg("黑金妮吃飽了！+200💰"); updateBoard(); return;
+            }
+
+            if (srcItem.type === 'member' && targetItem.type === 'member' && srcItem.char === targetItem.char && srcItem.level === targetItem.level) {
+                if (srcItem.level < 12) {
+                    if (srcItem.level === 4 || srcItem.level === 5) {
+                        board[srcIdx] = null; board[targetIdx] = null; 
+                        let spot = findEmpty2x2();
+                        
+                        // 🎲 判斷機率：如果是 Lv.4 合成就是 10% (0.1)，Lv.5 合成就是 5% (0.05)
+                        let bossChance = (srcItem.level === 4) ? 0.075 : 0.05;
+                        
+                        if (spot !== -1 && Math.random() < bossChance) { 
+                            triggerBoss(spot); return; 
+                        } else { 
+                            board[srcIdx] = srcItem; board[targetIdx] = targetItem; 
+                        }
+                    }
+                    board[targetIdx] = { type: 'member', char: targetItem.char, level: targetItem.level + 1 };
+                    board[srcIdx] = null; logMsg(`合成了 Lv.${targetItem.level + 1}`);
+                }
+            } else if (srcItem.level === 12 && targetItem.level === 12 && srcItem.char !== targetItem.char) {
+                board[targetIdx] = { type: 'cp', char1: srcItem.char, char2: targetItem.char }; board[srcIdx] = null; logMsg("解鎖 CP！");
+            } else if (srcItem.type === 'cp' && targetItem.type === 'cp') {
+                const charsInvolved = new Set([srcItem.char1, srcItem.char2, targetItem.char1, targetItem.char2]);
+                if (charsInvolved.size === 4) { board[targetIdx] = { type: 'final' }; board[srcIdx] = null; logMsg("🎉 MAMAMOO 完全體！"); } 
+                else { logMsg("CP 角色重複！"); }
+            }
+            updateBoard();
+        }
+
+        const bossPool = [
+            { id: 'boss_solar', name: '迷你容容', reward: 1200 },
+            { id: 'boss_moon', name: '迷你星星', reward: 1000 },
+            { id: 'boss_whee', name: '迷你輝妮', reward: 1500 },
+            { id: 'boss_hwa', name: '迷你黑金妮', reward: 2000 }
+        ];
+
+        function triggerBoss(spotIdx) {
+            bossActive = true; 
+            const bossData = bossPool[Math.floor(Math.random() * bossPool.length)];
+            board[spotIdx] = { type: 'boss', hp: 50, name: bossData.name, id: bossData.id, reward: bossData.reward };
+            board[spotIdx+1] = { type: 'boss_part' }; board[spotIdx+8] = { type: 'boss_part' }; board[spotIdx+9] = { type: 'boss_part' };
+            logMsg(`💥 基因突變！${board[spotIdx].name}霸佔了盤面！`); 
+            updateBoard();
+        }
+
+        function hitBoss(index) {
+            if (!bossActive) return;
+            const boss = board[index];
+            if (!boss) return;
+
+            boss.hp--;
+            if (boss.hp <= 0) {
+                bossActive = false; coins += boss.reward; 
+                logMsg(`🎉 打敗${boss.name}！獲得 ${boss.reward} 💰`); 
+                board[index] = null; board[index+1] = null; board[index+8] = null; board[index+9] = null; 
+            }
+            updateBoard();
+        }
+
+        function triggerRandomEvent() {
+            if (!document.getElementById('page-merge').classList.contains('active')) return;
+            if (bossActive) return;
+            
+            const emptyIndices = [];
+            board.forEach((item, idx) => { if (!item) emptyIndices.push(idx); });
+            if (emptyIndices.length === 0) return;
+
+            if (Math.random() < 0.15) {
+                const dropIdx = emptyIndices[Math.floor(Math.random() * emptyIndices.length)];
+                const targetCell = document.querySelector(`.cell[data-index='${dropIdx}']`);
+                if (!targetCell) return;
+                
+                const rect = targetCell.getBoundingClientRect();
+                const appRect = appContainer.getBoundingClientRect();
+
+                const animEl = document.createElement('div');
+                animEl.className = 'cell falling-hwasa'; 
+                animEl.innerHTML = `<img src="images/board/hungry_hwa.jpg" style="width: 85%; height: 85%; object-fit: contain;">`;
+                animEl.style.width = rect.width + 'px';
+                animEl.style.height = rect.height + 'px';
+                animEl.style.left = (rect.left - appRect.left) + 'px';
+                animEl.style.top = '-100px'; 
+                appContainer.appendChild(animEl);
+
+                logMsg("🚨 飢餓黑金妮從天而降！");
+                void animEl.offsetWidth; 
+                animEl.style.top = (rect.top - appRect.top) + 'px';
+
+                setTimeout(() => {
+                    animEl.remove();
+                    board[dropIdx] = { type: 'hungry', timeLeft: 10 };
+                    updateBoard();
+
+                    hwasaTimerId = setInterval(() => {
+                        if (!document.getElementById('page-merge').classList.contains('active')) return;
+                        const idx = board.findIndex(i => i && i.type === 'hungry');
+                        if (idx === -1) { clearInterval(hwasaTimerId); return; }
+                        board[idx].timeLeft--;
+                        if (board[idx].timeLeft <= 0) {
+                            clearInterval(hwasaTimerId); board[idx] = null; eatHighestItem();
+                        } else { updateBoard(); }
+                    }, 1000);
+                }, 400); 
+            }
+        }
+
+        function eatHighestItem() {
+            let maxLevel = -1, targetIdx = -1;
+            board.forEach((item, idx) => { 
+                if (item && item.type === 'member' && item.level > maxLevel && item.level <= 7) { 
+                    maxLevel = item.level; targetIdx = idx; 
+                } 
+            });
+            if (targetIdx !== -1) { 
+                board[targetIdx] = null; logMsg(`😱 黑金妮吃掉了你的 Lv.${maxLevel} 卡片！`); 
+            } else { logMsg(`沒有 Lv.7 以下的食物，黑金妮餓著離開了！`); }
+            updateBoard();
+        }
+
+        let spawnTimer = null;
+        let spawnInterval = null;
+
+        function initSpawnButton() {
+            const btn = document.getElementById('btn-spawn');
+            btn.addEventListener('pointerdown', handleSpawnPress);
+            btn.addEventListener('pointerup', stopSpawning);
+            btn.addEventListener('pointerleave', stopSpawning);
+            btn.addEventListener('pointercancel', stopSpawning);
+            btn.addEventListener('contextmenu', e => e.preventDefault()); 
+        }
+
+        function handleSpawnPress(e) {
+            if (e && e.preventDefault) e.preventDefault();
+            if (!spawnSingleItem()) return;  
+            spawnTimer = setTimeout(() => {
+                spawnInterval = setInterval(() => { if (!spawnSingleItem()) stopSpawning(); }, 100); 
+            }, 400);
+        }
+
+        function stopSpawning() { clearTimeout(spawnTimer); clearInterval(spawnInterval); }
+
+        function spawnSingleItem() {
+            if (bossActive) return false;
+            const emptyIndices = []; 
+            board.forEach((item, idx) => { if (!item) emptyIndices.push(idx); });
+            if (emptyIndices.length === 0) { logMsg("⚠️ 盤面滿了！"); return false; }
+            
+            const randIdx = emptyIndices[Math.floor(Math.random() * emptyIndices.length)];
+            const randChar = chars[Math.floor(Math.random() * chars.length)].id;
+            
+            // 🎲 根據關卡決定召喚等級的機率
+            let spawnLevel = 1;
+            let randNum = Math.random() * 100; // 產生 0~100 的隨機數
+            
+            if (currentLevel > 20) {
+                // Lv.20 以後：最高召喚 Lv.6
+                // 機率分佈：Lv.1(40%), Lv.2(25%), Lv.3(15%), Lv.4(10%), Lv.5(7%), Lv.6(3%)
+                if (randNum < 40) spawnLevel = 1;
+                else if (randNum < 65) spawnLevel = 2;
+                else if (randNum < 80) spawnLevel = 3;
+                else if (randNum < 90) spawnLevel = 4;
+                else if (randNum < 97) spawnLevel = 5;
+                else spawnLevel = 6;
+            } else if (currentLevel > 8) {
+                // Lv.8 以後：最高召喚 Lv.4
+                // 機率分佈：Lv.1(50%), Lv.2(25%), Lv.3(15%), Lv.4(10%)
+                if (randNum < 50) spawnLevel = 1;
+                else if (randNum < 75) spawnLevel = 2;
+                else if (randNum < 90) spawnLevel = 3;
+                else spawnLevel = 4;
+            } else if (currentLevel > 4) {
+                // Lv.4 以後：最高召喚 Lv.2
+                // 機率分佈：Lv.1(70%), Lv.2(30%)
+                if (randNum < 70) spawnLevel = 1;
+                else spawnLevel = 2;
+            }
+
+            // 執行召喚
+            board[randIdx] = { type: 'member', char: randChar, level: spawnLevel }; 
+            updateBoard(); 
+            return true;
+        }
+
+        function openEvoChart(index) {
+            const item = board[index];
+            if (!item || item.type !== 'member') return;
+            document.getElementById('modal-title').innerText = `${getCharName(item.char)} 的進化表`;
+            document.getElementById('modal-desc').innerText = '點擊外面關閉';
+            const grid = document.getElementById('modal-grid');
+            grid.innerHTML = '';
+            for (let i = 1; i <= 12; i++) {
+                const box = document.createElement('div');
+                box.className = `evo-cell`;
+                box.innerHTML = `<img src="images/board/${item.char}_${i}.jpg" onerror="this.src='';this.alt='Lv.${i}'">`;
+                grid.appendChild(box);
+            }
+            document.getElementById('evo-modal').style.display = 'flex';
+        }
+        function closeModal() { document.getElementById('evo-modal').style.display = 'none'; }
+
+        // --- ✨ 沈浸式抽卡核心系統 ✨ ---
+        let currentRevealIndex = -1;
+        let revealResults = [];
+
+        function buyPack(cost, type) {
+            if (coins < cost) { logMsg("❌ 金幣不足！"); return; }
+            coins -= cost; inventory[type]++; updateShopUI(); logMsg("✅ 購買成功！請到拆卡區開啟！");
+        }
+
+        function openPack(type) {
+            if (inventory[type] <= 0) { logMsg("❌ 沒有卡包！"); return; }
+            inventory[type]--; 
+            
+            let drawCount = type === 'small' ? 10 : (type === 'large' ? 20 : 3);
+            let results = [];
+            
+            for (let i = 0; i < drawCount; i++) {
+                if (type === 'surprise') {
+                    if (Math.random() < 0.05) {
+                        results.push({ type: 'choice', html: `<span style="font-size: 1.2rem;">✨ 萬能自選卡 ✨</span>` });
+                        choiceCards++;
+                    } else {
+                        results.push({ type: 'meme', html: `<img src="images/memes/meme_01.jpg" style="max-height:80px; max-width:80px; object-fit:contain; border-radius:6px; box-shadow: 0 2px 5px rgba(0,0,0,0.2);" onerror="this.alt='meme'">` });
+                        addTears();
+                    }
+                } else {
+                    if (galleryData.length === 0) {
+                        results.push({ type: 'dup', html: `❌ 沒有圖鑑資料` });
+                        continue;
+                    }
+                    const card = galleryData[Math.floor(Math.random() * galleryData.length)];
+                    if (!card.unlocked) {
+                        card.unlocked = true;
+                        results.push({ type: 'new', path: card.path, name: card.name, html: `<div style="display:flex; align-items:center; gap:10px; width:100%;"><img src="${card.path}" style="height:45px; width:45px; object-fit:cover; border-radius:6px; border:1px solid #ddd;"> <div style="flex:1; text-align:left;">🆕 ${card.name}</div></div>` });
+                        checkSetCompletion(card.set);
+                    } else {
+                        coins += 100;
+                        results.push({ type: 'dup', path: card.path, name: card.name, html: `<div style="display:flex; align-items:center; gap:10px; width:100%; opacity:0.6;"><img src="${card.path}" style="height:45px; width:45px; object-fit:cover; border-radius:6px; border:1px solid #ddd;"> <div style="flex:1; text-align:left;">🔁 ${card.name} <span style="font-size:0.8rem">(轉100💰)</span></div></div>` });
+                    }
+                }
+            }
+            
+            saveLocalData(); 
+            showRevealModal(results); 
+        }
+
+        function showRevealModal(results) {
+            revealResults = results;
+            currentRevealIndex = -1;
+            document.getElementById('reveal-modal').style.display = 'flex';
+            nextReveal();
+        }
+
+        function nextReveal() {
+            currentRevealIndex++;
+            if (currentRevealIndex >= revealResults.length) {
+                endReveal();
+                return;
+            }
+            const res = revealResults[currentRevealIndex];
+            const display = document.getElementById('reveal-card');
+            
+            document.getElementById('reveal-count').innerText = `${currentRevealIndex + 1} / ${revealResults.length}`;
+            
+            display.style.animation = 'none';
+            void display.offsetWidth;
+            display.style.animation = 'popIn 0.3s';
+
+            if (res.type === 'meme') {
+                display.innerHTML = `
+                    <img src="images/memes/meme_01.jpg" style="width: 220px; height: 220px; object-fit: contain; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.5);" onerror="this.alt='meme'">
+                    <div style="margin-top: 20px; font-weight: bold; color: white; font-size: 1.2rem;">🥲 沒中...累積 1 滴眼淚</div>`;
+            } else if (res.type === 'choice') {
+                display.innerHTML = `
+                    <div style="font-size: 6rem; text-shadow: 0 0 20px #f1c40f;">✨</div>
+                    <div style="color: #f1c40f; font-weight: bold; margin-top: 15px; font-size: 1.8rem; text-shadow: 0 2px 4px rgba(0,0,0,0.5);">萬能自選卡！</div>`;
+            } else {
+                let borderColor = res.type === 'new' ? '#2ecc71' : '#ccc';
+                let statusText = res.type === 'new' ? '🆕 新卡解鎖！' : '🔁 重複卡轉 100💰';
+                display.innerHTML = `
+                    <img src="${res.path}" style="width: 220px; height: 220px; object-fit: cover; border-radius: 12px; border: 4px solid ${borderColor}; box-shadow: 0 4px 15px rgba(0,0,0,0.5);">
+                    <div style="margin-top: 20px; font-weight: bold; color: ${borderColor}; font-size: 1.3rem;">
+                        ${statusText}<br>
+                        <span style="color: white; font-size: 1.1rem; display: inline-block; margin-top: 5px;">${res.name}</span>
+                    </div>`;
+            }
+        }
+
+        function skipReveal(e) {
+            if(e) e.stopPropagation();
+            endReveal();
+        }
+
+        function endReveal() {
+            document.getElementById('reveal-modal').style.display = 'none';
+            displayResults(revealResults);
+            updateShopUI();
+            updateGalleryUI();
+        }
+
+        function displayResults(results) {
+            const display = document.getElementById('result-display');
+            display.innerHTML = '';
+            
+            const isMemePack = results.some(r => r.type === 'meme');
+            display.style.flexDirection = isMemePack ? 'row' : 'column';
+            display.style.flexWrap = 'wrap';
+            display.style.gap = '10px';
+
+            results.forEach(res => {
+                const div = document.createElement('div');
+                div.innerHTML = res.html;
+                if (!isMemePack) {
+                    div.style.color = (res.type === 'new' || res.type === 'choice') ? '#2ecc71' : '#7f8c8d';
+                    div.style.width = '100%';
+                }
+                display.appendChild(div);
+            });
+            updateBoard(); 
+        }
+
+        function addTears() {
+            tears++;
+            if (tears >= 30) {
+                tears -= 30;
+                choiceCards++;
+                logMsg("💧 木木的眼淚集滿！獲得一張自選卡！");
+            }
+        }
+
+        function useChoiceCard() {
+            if (choiceCards <= 0) { logMsg("❌ 你沒有自選卡！"); return; }
+            
+            const lockedCards = galleryData.filter(c => !c.unlocked);
+            if (lockedCards.length === 0) { logMsg("🎉 圖鑑已全滿，不需要自選啦！"); return; }
+
+            document.getElementById('modal-title').innerText = `請選擇你要解鎖的卡片`;
+            document.getElementById('modal-desc').innerText = `點擊卡片解鎖`;
+            const grid = document.getElementById('modal-grid');
+            grid.innerHTML = '';
+            
+            lockedCards.forEach(card => {
+                const box = document.createElement('div');
+                box.className = `evo-cell`;
+                box.style.background = '#eee';
+                box.innerHTML = `<img src="${card.path}" onerror="this.src='';this.alt='找不到圖'">`;
+                box.onclick = (e) => {
+                    e.stopPropagation(); 
+                    choiceCards--;
+                    card.unlocked = true;
+                    logMsg(`✨ 成功使用自選卡解鎖：${card.name}！`);
+                    checkSetCompletion(card.set);
+                    updateShopUI();
+                    updateGalleryUI();
+                    closeModal();
+                };
+                grid.appendChild(box);
+            });
+            document.getElementById('evo-modal').style.display = 'flex';
+        }
+
+        function checkSetCompletion(setName) {
+            if (claimedSets.has(setName)) return; 
+            
+            const setCards = galleryData.filter(c => c.set === setName);
+            const allUnlocked = setCards.every(c => c.unlocked);
+            
+            if (allUnlocked) {
+                const reward = 100 * setCards.length;
+                coins += reward;
+                claimedSets.add(setName);
+                logMsg(`🎉 集滿【${setName}】！獲得 Set 獎勵 ${reward} 💰！`);
+                updateBoard();
+            }
+        }
+
+        function updateShopUI() { 
+            document.getElementById('inv-small').innerText = inventory.small; 
+            document.getElementById('inv-large').innerText = inventory.large; 
+            document.getElementById('inv-surprise').innerText = inventory.surprise; 
+            document.getElementById('coins').innerText = coins; 
+            document.getElementById('tears-count').innerText = tears;
+            document.getElementById('tears-bar').style.width = (tears / 30 * 100) + '%';
+            document.getElementById('choice-cards').innerText = choiceCards;
+            saveLocalData(); 
+        }
+
+        function updateGalleryUI() {
+            const gal = document.getElementById('gallery-container'); 
+            gal.innerHTML = ''; 
+            
+            let totalUnlocked = 0;
+            
+            const setsGroup = {};
+            galleryData.forEach(item => {
+                if (!setsGroup[item.set]) setsGroup[item.set] = [];
+                setsGroup[item.set].push(item);
+                if (item.unlocked) totalUnlocked++;
+            });
+
+            for (let setName in setsGroup) {
+                const title = document.createElement('div');
+                title.className = 'set-title';
+                const isClaimed = claimedSets.has(setName);
+                title.innerText = `📂 ${setName} ` + (isClaimed ? '✅(已領獎)' : '');
+                gal.appendChild(title);
+
+                const grid = document.createElement('div');
+                grid.className = 'gallery-grid';
+                
+                setsGroup[setName].forEach(card => {
+                    const div = document.createElement('div');
+                    div.className = 'gallery-card' + (card.unlocked ? ' unlocked' : '');
+                    if (card.unlocked) {
+                        div.innerHTML = `<img src="${card.path}" onerror="this.src='';this.alt='找不到圖'">`;
+                        div.style.cursor = 'pointer';
+                        div.onclick = () => openImageModal(card.path);
+                    } else {
+                        div.innerText = '???';
+                    }
+                    grid.appendChild(div);
+                });
+                gal.appendChild(grid);
+            }
+            
+            document.getElementById('gallery-unlocked').innerText = totalUnlocked;
+            document.getElementById('gallery-total').innerText = galleryData.length;
+            saveLocalData(); 
+        }
+
+        function getCharName(id) { const f = chars.find(c => c.id === id); return f ? f.name : id; }
+
+        window.onload = () => { 
+            initGalleryData(); 
+            let hasSave = loadLocalData();
+            initBoard(); 
+            updateShopUI(); 
+            updateGalleryUI(); 
+            
+            if (hasSave) logMsg("✅ 已自動為您讀取上次遊玩進度！");
+        };
+    </script>
+</body>
+</html>

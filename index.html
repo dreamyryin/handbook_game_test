@@ -21,7 +21,7 @@
     <!-- 讀取 Python 自動生成的圖鑑資料 -->
     <script src="card_data.js"></script>
 
-    <!-- ⚡ Firebase 測試專案核心與模組引入 -->
+    <!-- ⚡ Firebase 測試專案核心與模組引入 (含自動背景同步) -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-app.js";
         import { getAuth, signInWithPopup, GoogleAuthProvider, signOut } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-auth.js";
@@ -41,19 +41,19 @@
         const auth = getAuth(app);
         const db = getFirestore(app);
 
-        // 綁定到全域變數供按鈕呼叫
+        // 綁定到全域變數供按鈕與自動同步呼叫
         window.faAuth = auth;
         window.faDb = db;
 
-        // ☁️ 點擊 Google 登入並自動同步雲端存檔 (測試專案)
+        // ☁️ 點擊 Google 登入並自動同步雲端存檔
         window.loginWithGoogleCloud = async () => {
             const provider = new GoogleAuthProvider();
             try {
                 const result = await signInWithPopup(auth, provider);
                 const user = result.user;
-                logMsg(`💚 測試登入成功，歡迎 ${user.displayName}！`);
+                logMsg(`💚 登入成功，歡迎 ${user.displayName}！`);
                 
-                // 登入成功後，立刻嘗試從測試雲端抓取存檔
+                // 登入成功後，立刻從雲端抓取最新進度
                 await loadCloudData(user.uid);
             } catch (error) {
                 console.error(error);
@@ -61,31 +61,32 @@
             }
         };
 
-        // ☁️ 儲存存檔至雲端 Firestore (測試專案)
-        window.saveCloudData = async function() {
-            const user = auth.currentUser;
-            if (!user) {
-                logMsg("⚠️ 尚未登入 Google，無法同步至雲端！");
-                return;
-            }
-            try {
-                saveLocalData();
-                const rawSaveStr = localStorage.getItem('mamamoo_save');
-                const createTime = localStorage.getItem('player_created_at');
+        let cloudSyncTimer = null;
 
-                await setDoc(doc(db, "game_saves", user.uid), {
-                    saveData: rawSaveStr,
-                    playerCreatedAt: createTime,
-                    updatedAt: Date.now()
-                });
-                logMsg("☁️ 測試雲端存檔同步成功！");
-            } catch (e) {
-                console.error("Cloud save failed", e);
-                logMsg("❌ 測試雲端存檔失敗！");
-            }
+        // ☁️ 自動背景即時上傳至雲端 Firestore (帶防手震延遲)
+        window.triggerAutoCloudSave = function() {
+            const user = auth.currentUser;
+            if (!user) return; // 沒登入就只存本地
+
+            if (cloudSyncTimer) clearTimeout(cloudSyncTimer);
+            cloudSyncTimer = setTimeout(async () => {
+                try {
+                    const rawSaveStr = localStorage.getItem('mamamoo_save');
+                    const createTime = localStorage.getItem('player_created_at');
+
+                    await setDoc(doc(db, "game_saves", user.uid), {
+                        saveData: rawSaveStr,
+                        playerCreatedAt: createTime,
+                        updatedAt: Date.now()
+                    });
+                    console.log("☁️ 雲端自動同步成功");
+                } catch (e) {
+                    console.error("Auto cloud save failed", e);
+                }
+            }, 1500); // 停止操作 1.5 秒後自動上傳
         };
 
-        // ☁️ 從雲端 Firestore 讀取存檔 (測試專案)
+        // ☁️ 從雲端 Firestore 讀取存檔
         async function loadCloudData(uid) {
             try {
                 const docRef = doc(db, "game_saves", uid);
@@ -103,14 +104,15 @@
                     updateShopUI();
                     updateGalleryUI();
                     updateBoard();
-                    logMsg("☁️ 成功從測試雲端同步遊戲進度！");
+                    logMsg("☁️ 成功從雲端同步遊戲與任務進度！");
                 } else {
-                    await window.saveCloudData();
-                    logMsg("☁️ 已為您在測試雲端建立全新存檔！");
+                    // 若雲端尚無存檔，把當前本地存檔推上去
+                    window.triggerAutoCloudSave();
+                    logMsg("☁️ 已為您在雲端建立全新存檔！");
                 }
             } catch (e) {
                 console.error("Cloud load failed", e);
-                logMsg("❌ 讀取測試雲端存檔失敗！");
+                logMsg("❌ 讀取雲端存檔失敗！");
             }
         }
     </script>
@@ -405,7 +407,7 @@
             <div id="settings-menu">
                 <h3 style="margin:0 0 15px 0; color:#2c3e50;">⚙️ 設定</h3>
                 <!-- ☁️ Google 測試登入按鈕 -->
-                <button class="btn-action" style="background: linear-gradient(45deg, #4285F4, #34A853);" onclick="window.loginWithGoogleCloud()">☁️ Google 測試登入與同步</button>
+                <button class="btn-action" style="background: linear-gradient(45deg, #4285F4, #34A853);" onclick="window.loginWithGoogleCloud()">☁️ Google 登入與同步</button>
                 <button class="btn-action" onclick="showTransferMenu()">🔄 進度轉移 (引繼碼)</button>
                 <button class="btn-action" style="background: linear-gradient(45deg, #00acc1, #00bcd4);" onclick="showUpdateLog()">📜 版本更新日誌</button>
                 <button class="btn-action btn-special" onclick="showCredits()">📝 Credits</button>
@@ -691,7 +693,7 @@
         }
         function closeHelp() { document.getElementById('help-modal').style.display = 'none'; }
 
-        // --- 💾 終極高容錯率存讀檔系統 ---
+        // --- 💾 終極高容錯率存讀檔系統 (含自動背景雲端同步) ---
         function saveLocalData() {
             try {
                 const charList = ['solar', 'moon', 'whee', 'hwa'];
@@ -721,6 +723,11 @@
 
                 const rawStr = `${coins}|${inventory.small},${inventory.large},${inventory.surprise}|${tears}|${choiceCards}|${currentLevel}|${compactSets}|${compactBoard}|${compactGallery}|${mStr}|${permAutoFlag}|${leftSec}`;
                 localStorage.setItem('mamamoo_save', rawStr);
+
+                // ⚡ 每次本地存檔時，自動觸發背景雲端同步！
+                if (typeof window.triggerAutoCloudSave === 'function') {
+                    window.triggerAutoCloudSave();
+                }
             } catch (e) {
                 console.error("Auto-save failed", e);
             }

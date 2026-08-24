@@ -2,7 +2,6 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
@@ -142,7 +141,6 @@
             75% { transform: translate(-1px, 2px) rotate(-1deg); }
         }
 
-        /* 抽卡動畫 */
         @keyframes popIn {
             0% { transform: scale(0.5); opacity: 0; }
             70% { transform: scale(1.1); opacity: 1; }
@@ -196,7 +194,6 @@
             resize: none; font-size: 0.8rem; border-radius: 6px; border: 1px solid #ccc; font-family: monospace;
         }
 
-        /* 說明書內部樣式：白底綠字與粗體標題 */
         .help-content { color: var(--text-dark); text-align: left; line-height: 1.5; font-size: 0.95rem;}
         .help-content p { margin: 10px 0; }
         .help-content b { font-size: 1.05rem; display: block; margin-top: 12px; color: #2e7d32; }
@@ -209,7 +206,6 @@
         <div class="coin-area">💰 <span id="coins">0</span></div>
         <div id="log-area">MAMAMOO 宿舍開啟！</div>
         
-        <!-- 右上角：說明按鈕與設定按鈕 -->
         <div style="display: flex; gap: 8px; align-items: center;">
             <button id="btn-help-global" class="btn-help" onclick="openHelp()">❓</button>
             <button class="btn-settings" onclick="openSettings()">⚙️</button>
@@ -224,18 +220,15 @@
                 <div class="task-list" id="task-list"></div>
             </div>
             
-            <!-- 三顆按鈕排在一排（無 Emoji、等寬） -->
             <div class="board-container">
                 <div class="board" id="game-board"></div>
             </div>
             
             <div id="trash-can">🗑️ 拖曳至此出售</div>
             
-            <!-- 三顆按鈕排在垃圾桶下方、導航列上方 -->
             <div style="display: flex; gap: 6px; margin-top: 10px; width: 100%; align-items: flex-start;">
                 <button class="btn-spawn" style="flex: 1; background-color: #3498db; box-shadow: 0 3px 0 #2980b9;" onclick="sortBoard()">一鍵整理</button>
                 
-                <!-- 一鍵合成按鈕與等級調整區塊 -->
                 <div style="flex: 1.2; display: flex; flex-direction: column; gap: 3px;">
                     <button class="btn-spawn" id="btn-auto-merge" style="width: 100%; background-color: #95a5a6; box-shadow: 0 3px 0 #7f8c8d;" onclick="handleAutoMergeAction()">一鍵合成</button>
                     <div id="auto-merge-level-control" style="display: none; justify-content: space-between; align-items: center; background: #fff; padding: 2px 6px; border-radius: 4px; font-size: 0.75rem; font-weight: bold; border: 1px solid #ccc;">
@@ -311,10 +304,9 @@
         </div>
     </div>
 
-    <!-- ⚙️ 全新設定選單 -->
+    <!-- ⚙️ 設定選單 -->
     <div id="settings-modal" class="modal-bg" onclick="closeSettings()">
         <div class="modal-container" onclick="event.stopPropagation()">
-            <!-- 主選單 -->
             <div id="settings-menu">
                 <h3 style="margin:0 0 15px 0; color:#2c3e50;">⚙️ 設定</h3>
                 <button class="btn-action" onclick="showTransferMenu()">🔄 進度轉移 (引繼碼)</button>
@@ -324,7 +316,6 @@
                 <button class="btn-action" style="background:#95a5a6; padding:8px;" onclick="closeSettings()">關閉</button>
             </div>
             
-            <!-- 進度轉移畫面 -->
             <div id="settings-transfer" style="display:none;">
                 <h3 style="margin:0; color:#2c3e50;">🔄 進度轉移</h3>
                 <p style="font-size:0.8rem; color:#888; margin:5px 0;">本遊戲會自動儲存於瀏覽器內。<br>若要更換設備，請在此複製引繼碼。</p>
@@ -334,12 +325,9 @@
                 <button class="btn-action" style="background:#95a5a6; padding:8px; margin-top:15px;" onclick="backToSettings()">返回</button>
             </div>
 
-            <!-- 📜 版本更新日誌畫面 -->
             <div id="settings-update-log" style="display:none; text-align:left;">
                 <h3 style="margin:0 0 10px 0; color:#2c3e50; text-align:center;">📜 更新日誌</h3>
                 <div style="max-height:50vh; overflow-y:auto; padding: 0 5px;">
-                    
-                    <!-- 👇 未來新增日誌就複製這一個區塊 👇 -->
                     <div style="margin-bottom: 10px;">
                         <button onclick="toggleLog('log-20260823')" style="width:100%; text-align:left; padding:10px; font-weight:bold; background:#e0f7fa; color:#00838f; border:none; border-radius:5px; cursor:pointer;">
                             📅 2026.08.23 20:00 
@@ -348,23 +336,18 @@
                             新增彩蛋—本彩蛋為有聲彩蛋，請注意手機音量。 (彩蛋提示:引繼碼)
                         </div>
                     </div>
-                    <!-- 👆 新增日誌區塊結束 👆 -->
-                    <!-- 👇 未來新增日誌就複製這一個區塊 👇 -->
                     <div style="margin-bottom: 10px;">
                         <button onclick="toggleLog('log-20260824')" style="width:100%; text-align:left; padding:10px; font-weight:bold; background:#e0f7fa; color:#00838f; border:none; border-radius:5px; cursor:pointer;">
                             📅 2026.08.24 12:20 
                         </button>
                         <div id="log-20260824" style="display:none; padding:10px; background:#f9f9f9; border-left:3px solid #00acc1; font-size:14px; margin-top:5px; color:#333;">
-                            新增一鍵合成功能。
+                            新增一鍵合成功能與補償發放系統。
                         </div>
                     </div>
-                    <!-- 👆 新增日誌區塊結束 👆 -->
-                    
                 </div>
                 <button class="btn-action" style="background:#95a5a6; padding:8px; margin-top:15px;" onclick="backToSettings()">返回</button>
             </div>
 
-            <!-- Credits 畫面 -->
             <div id="settings-credits" style="display:none; text-align:left;">
                 <h3 style="margin:0 0 10px 0; color:#2c3e50; text-align:center;">📝 Credits</h3>
                 <div style="font-size:0.85rem; color:#555; max-height:50vh; overflow-y:auto; line-height:1.4; padding: 0 5px;">
@@ -381,9 +364,7 @@
     <div id="help-modal" class="modal-bg" style="z-index: 3000;" onclick="closeHelp()">
         <div class="modal-container" style="background: white;" onclick="event.stopPropagation()">
             <h3 style="margin-top:0; color: #2e7d32; border-bottom: 2px solid #eee; padding-bottom: 10px;">遊戲說明</h3>
-            <div id="help-content-box" class="help-content" style="max-height: 60vh; overflow-y: auto;">
-                <!-- 內容由 JS 動態塞入 -->
-            </div>
+            <div id="help-content-box" class="help-content" style="max-height: 60vh; overflow-y: auto;"></div>
             <button class="btn-action" style="background: var(--primary); padding: 8px; margin-top: 15px;" onclick="closeHelp()">我知道了！</button>
         </div>
     </div>
@@ -394,9 +375,7 @@
             <button onclick="skipReveal(event)" style="background: rgba(255,255,255,0.2); border: none; color: white; padding: 6px 16px; border-radius: 20px; font-weight: bold; font-size: 1rem; cursor: pointer;">跳過 >></button>
         </div>
         <div id="reveal-count" style="color: #ccc; font-weight: bold; font-size: 1.2rem; margin-bottom: 20px;">1 / 10</div>
-        <div id="reveal-card" style="text-align: center;">
-            <!-- 卡片內容在此動態顯示 -->
-        </div>
+        <div id="reveal-card" style="text-align: center;"></div>
         <div style="margin-top: 30px; font-size: 1rem; color: #aaa; animation: shake 2s infinite;">(點擊畫面翻開下一張)</div>
     </div>
 
@@ -404,21 +383,6 @@
     <div id="image-modal" class="modal-bg" style="z-index: 5000; background: rgba(0,0,0,0.85);" onclick="closeImageModal()">
         <img id="enlarged-img" src="" style="max-width: 90%; max-height: 85%; object-fit: contain; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.5);" onclick="event.stopPropagation()">
         <div style="position: absolute; top: 15px; right: 20px; color: white; font-size: 2.5rem; font-weight: bold; cursor: pointer; text-shadow: 0 2px 4px rgba(0,0,0,0.5);">&times;</div>
-    </div>
-
-    <!-- 🚨 GM 緊急維護畫面 (預設是關閉的 display:none 用flex打開) -->
-    <div id="maintenance-modal" style="display:flex; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(192, 57, 43, 0.95); z-index:99999; flex-direction:column; justify-content:center; align-items:center; color:white; text-align:center; padding:20px; box-sizing:border-box;">
-        <div style="font-size: 3rem; margin-bottom: 10px;">🛠️</div>
-        <h2 style="margin: 0 0 10px 0; font-size: 1.8rem;">GM 正在緊急維護中！</h2>
-        <p style="font-size: 1rem; line-height: 1.6; max-width: 320px; margin-bottom: 20px;">
-            管理員正在修改程式碼與測試新功能中。<br>
-            為了避免存檔衝突或資料錯亂，<br>
-            <b>請大家先不要進行任何合成或操作！</b><br><br>
-            維護完成後會自動恢復，請稍候片刻 💚。
-        </p>
-        <div style="font-size: 0.85rem; background: rgba(0,0,0,0.3); padding: 8px 15px; border-radius: 20px; animation: shake 1s infinite;">
-            請勿重新整理或關閉網頁...
-        </div>
     </div>
 </div>
 
@@ -471,9 +435,9 @@
             const cpMap = {
                 'moon_solar': 'moon_solar', 
                 'solar_whee': 'solar_whee', 
-                'hwa_solar': 'hwa_solar',   
-                'moon_whee': 'moon_whee',   
-                'hwa_moon': 'hwa_moon',     
+                'hwa_solar': 'hwa_solar',    
+                'moon_whee': 'moon_whee',    
+                'hwa_moon': 'hwa_moon',      
                 'hwa_whee': 'hwa_whee'      
             };
             return cpMap[pair] || pair;
@@ -630,7 +594,7 @@
         }
         function closeHelp() { document.getElementById('help-modal').style.display = 'none'; }
 
-        // --- 💾 全自動本機存檔系統 (支援開著才計時的剩餘秒數) ---
+        // --- 💾 終極高容錯率存讀檔系統 ---
         function saveLocalData() {
             try {
                 const charList = ['solar', 'moon', 'whee', 'hwa'];
@@ -653,15 +617,12 @@
                 const mStr = currentMissionData ? btoa(encodeURIComponent(JSON.stringify(currentMissionData))) : "";
 
                 const permAutoFlag = isPermanentAutoMerge ? 1 : 0;
-                
-                // 計算並儲存「剩餘秒數」：若非永久且還在倒數，就存下剩餘秒數；否則為 0
                 let leftSec = 0;
                 if (!isPermanentAutoMerge && autoMergeEndTime > Date.now()) {
                     leftSec = Math.ceil((autoMergeEndTime - Date.now()) / 1000);
                 }
 
                 const rawStr = `${coins}|${inventory.small},${inventory.large},${inventory.surprise}|${tears}|${choiceCards}|${currentLevel}|${compactSets}|${compactBoard}|${compactGallery}|${mStr}|${permAutoFlag}|${leftSec}`;
-                
                 localStorage.setItem('mamamoo_save', rawStr);
             } catch (e) {
                 console.error("Auto-save failed", e);
@@ -673,24 +634,27 @@
             if (!rawStr) return false;
             try {
                 const parts = rawStr.split('|');
-                if (parts.length < 8) return false;
+                if (parts.length < 5) return false;
 
                 const charList = ['solar', 'moon', 'whee', 'hwa'];
                 const setList = Object.keys(gameCardSets);
                 
                 coins = parseInt(parts[0]) || 0;
-                let invParts = parts[1].split(',');
-                inventory = { 
-                    small: parseInt(invParts[0]) || 0, 
-                    large: parseInt(invParts[1]) || 0, 
-                    surprise: parseInt(invParts[2]) || 0 
-                };
+                if (parts[1]) {
+                    let invParts = parts[1].split(',');
+                    inventory = { 
+                        small: parseInt(invParts[0]) || 0, 
+                        large: parseInt(invParts[1]) || 0, 
+                        surprise: parseInt(invParts[2]) || 0 
+                    };
+                }
+                
                 tears = parseInt(parts[2]) || 0;
                 choiceCards = parseInt(parts[3]) || 0;
                 currentLevel = parseInt(parts[4]) || 1;
                 
                 claimedSets.clear();
-                if (parts[5]) {
+                if (parts[5] && !parts[5].includes('m') && !parts[5].includes('eyJ') && !/^[01]{10,}$/.test(parts[5])) {
                     parts[5].split('-').forEach(idx => {
                         let sName = setList[parseInt(idx)];
                         if (sName) claimedSets.add(sName);
@@ -698,52 +662,113 @@
                 }
                 
                 board = new Array(BOARD_SIZE).fill(null);
-                if (parts[6]) {
-                    parts[6].split('-').forEach(bItem => {
-                        let [idxStr, valStr] = bItem.split(':');
-                        let idx = parseInt(idxStr);
-                        if (valStr.startsWith('m')) {
-                            board[idx] = { type: 'member', char: charList[parseInt(valStr[1])], level: parseInt(valStr.substring(2)) };
-                        } else if (valStr.startsWith('c')) {
-                            board[idx] = { type: 'cp', char1: charList[parseInt(valStr[1])], char2: charList[parseInt(valStr[2])] };
-                        } else if (valStr === 'f') {
-                            board[idx] = { type: 'final' };
-                        }
-                    });
-                }
+                parts.forEach(p => {
+                    if (p && p.includes(':') && (p.includes('m') || p.includes('c') || p.includes('f'))) {
+                        p.split('-').forEach(bItem => {
+                            let [idxStr, valStr] = bItem.split(':');
+                            let idx = parseInt(idxStr);
+                            if (!isNaN(idx) && valStr) {
+                                if (valStr.startsWith('m')) {
+                                    board[idx] = { type: 'member', char: charList[parseInt(valStr[1])], level: parseInt(valStr.substring(2)) };
+                                } else if (valStr.startsWith('c')) {
+                                    board[idx] = { type: 'cp', char1: charList[parseInt(valStr[1])], char2: charList[parseInt(valStr[2])] };
+                                } else if (valStr === 'f') {
+                                    board[idx] = { type: 'final' };
+                                }
+                            }
+                        });
+                    }
+                });
                 
-                if (parts[7]) {
-                    galleryData.forEach((c, idx) => {
-                        c.unlocked = (parts[7][idx] === '1');
-                    });
-                }
+                parts.forEach(p => {
+                    if (p && p.length === galleryData.length && /^[01]+$/.test(p)) {
+                        galleryData.forEach((c, idx) => {
+                            c.unlocked = (p[idx] === '1');
+                        });
+                    }
+                });
                 
-                if (parts.length > 8 && parts[8]) {
-                    currentMissionData = JSON.parse(decodeURIComponent(atob(parts[8])));
-                } else {
+                let missionLoaded = false;
+                parts.forEach(p => {
+                    if (p && p.startsWith('ey')) {
+                        try {
+                            currentMissionData = JSON.parse(decodeURIComponent(atob(p)));
+                            missionLoaded = true;
+                        } catch(err) {}
+                    }
+                });
+                if (!missionLoaded) {
                     currentMissionData = generateMissionsForLevel(currentLevel);
                 }
 
-                // 還原永久狀態與剩餘秒數
-                if (parts.length > 9 && parts[9]) {
-                    isPermanentAutoMerge = (parts[9] === '1');
+                isPermanentAutoMerge = false;
+                autoMergeEndTime = 0;
+                if (parts.length > 9 && parts[9] === '1') {
+                    isPermanentAutoMerge = true;
                 }
                 if (parts.length > 10 && parts[10]) {
                     let savedLeftSec = parseInt(parts[10]) || 0;
                     if (savedLeftSec > 0 && !isPermanentAutoMerge) {
-                        // 讀檔時把剩餘秒數轉換為以當前時間為基準的截止點
                         autoMergeEndTime = Date.now() + (savedLeftSec * 1000);
-                    } else {
-                        autoMergeEndTime = 0;
                     }
                 }
                 
                 bossActive = false;
                 return true;
             } catch (e) {
-                console.error("Load failed", e);
+                console.error("Load failed safely", e);
                 return false;
             }
+        }
+
+        // --- 🎁 完美過濾新舊玩家的補償系統 ---
+        function checkAndClaimCompensation() {
+            let createTime = localStorage.getItem('player_created_at');
+            
+            if (!createTime) {
+                const hasOldSave = localStorage.getItem('mamamoo_save') !== null;
+                if (hasOldSave) {
+                    createTime = new Date("2020-01-01T00:00:00").getTime(); // 老玩家保護
+                } else {
+                    createTime = Date.now(); // 新玩家
+                }
+                localStorage.setItem('player_created_at', createTime);
+            } else {
+                createTime = parseInt(createTime);
+            }
+
+            const compensations = [
+                {
+                    id: "compensation_20260824_1",
+                    maintenanceTime: new Date("2026-08-24T10:00:00").getTime(), 
+                    reward: () => {  choiceCards += 3; },
+                    msg: "💚 【營運補償公告】\n\n感謝各位木木的耐心等候與熱情測試！\n本次維護已順利完成。\n\n🎁 補償已發放: \n- 萬能自選卡 +3 張 ✨",
+                    log: "🎁 成功領取 3 張萬能自選卡補償！"
+                },
+
+                {
+                    id: "compensation_20260824_2",
+                    maintenanceTime: new Date("2026-08-24T14:00:00").getTime(), 
+                    reward: () => {  inventory.large += 2; },
+                    msg: "💚 【營運補償公告】\n\n感謝各位木木的耐心等候與熱情測試！\n本次維護已順利完成。\n\n🎁 補償已發放: \n- 大卡包 +2 包 ✨",
+                    log: "🎁 成功領取 2 包大卡包補償！"
+                }
+            ];
+
+            compensations.forEach(comp => {
+                let claimed = localStorage.getItem(comp.id);
+                if (!claimed && createTime < comp.maintenanceTime) {
+                    comp.reward();
+                    localStorage.setItem(comp.id, 'true');
+                    alert(comp.msg);
+                    logMsg(comp.log);
+                } else if (!claimed && createTime >= comp.maintenanceTime) {
+                    localStorage.setItem(comp.id, 'expired');
+                }
+            });
+
+            updateShopUI();
+            updateBoard();
         }
 
         // --- ⚙️ 設定系統 (含 Credits) ⚙️ ---
@@ -798,7 +823,6 @@
             const code = document.getElementById('transfer-code-input').value.trim();
             if (!code) { logMsg("⚠️ 請先貼上引繼碼！"); return; }
 
-            // 🎉 彩蛋 001：MAMAMOO 終極密碼
             let checkCode = code.toUpperCase(); 
             if (checkCode === "MAMAMOO" || checkCode === "20140619" || checkCode === "140619") {
                 let easterEggAudio = new Audio('audios/mamamoo_greeting.mp3'); 
@@ -834,7 +858,6 @@
             }
         }
 
-        // --- 🖼️ 圖片放大功能 ---
         function openImageModal(src) {
             document.getElementById('enlarged-img').src = src;
             document.getElementById('image-modal').style.display = 'flex';
@@ -844,7 +867,6 @@
             document.getElementById('enlarged-img').src = '';
         }
 
-        // --- 無限任務生成 ---
         function generateMissionsForLevel(level) {
             let taskCount = Math.floor(Math.random() * 3) + 1; 
             let tasks = [];
@@ -888,7 +910,6 @@
             initSpawnButton();
         }
 
-        // 🧹 一鍵整理盤面 
         function sortBoard() {
             if (bossActive || board.some(i => i && i.type === 'hungry')) {
                 logMsg("🚨 特殊事件中無法整理盤面！");
@@ -972,7 +993,7 @@
             });
             document.getElementById('coins').innerText = coins;
             updateTaskUI(); 
-            updateAutoButtonUI(); // 更新一鍵合成按鈕狀態
+            updateAutoButtonUI(); 
             saveLocalData(); 
         }
 
@@ -1053,26 +1074,6 @@
                 }, 500);
             }
             updateBoard();
-        }
-
-        // 🎁 發放維護補償的函數 (直接送 3 張自選卡！)
-        function checkAndClaimCompensation() {
-            const compId = "compensation_20260824_1"; // 換一個新的補償 ID
-            let claimed = localStorage.getItem(compId);
-
-            if (!claimed) {
-                // 發放補償內容：3 張自選卡
-                choiceCards += 3;
-                
-                // 標記為已領取
-                localStorage.setItem(compId, 'true');
-                updateShopUI();
-                updateBoard();
-
-                // 彈出溫馨公告告知玩家
-                alert("💚 【營運補償公告】\n\n感謝各位木木的耐心等候與熱情測試！\n本次維護已順利完成。\n\n 補償已發放：\n- 萬能自選卡 +3 張 ✨");
-                logMsg("🎁 成功領取 3 張萬能自選卡補償！");
-            }
         }
 
         let dragSourceIdx = -1;

@@ -21,7 +21,7 @@
     <!-- 讀取 Python 自動生成的圖鑑資料 -->
     <script src="card_data.js"></script>
 
-    <!-- ⚡ Firebase 測試專案核心與模組引入 (含自動背景同步) -->
+    <!-- ⚡ Firebase 測試專案核心與模組引入 -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-app.js";
         import { getAuth, signInWithPopup, GoogleAuthProvider, signOut } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-auth.js";
@@ -41,7 +41,6 @@
         const auth = getAuth(app);
         const db = getFirestore(app);
 
-        // 綁定到全域變數供按鈕與自動同步呼叫
         window.faAuth = auth;
         window.faDb = db;
 
@@ -52,8 +51,6 @@
                 const result = await signInWithPopup(auth, provider);
                 const user = result.user;
                 logMsg(`💚 登入成功，歡迎 ${user.displayName}！`);
-                
-                // 登入成功後，立刻從雲端抓取最新進度
                 await loadCloudData(user.uid);
             } catch (error) {
                 console.error(error);
@@ -63,10 +60,10 @@
 
         let cloudSyncTimer = null;
 
-        // ☁️ 自動背景即時上傳至雲端 Firestore (帶防手震延遲)
+        // ☁️ 自動背景即時上傳至雲端 Firestore
         window.triggerAutoCloudSave = function() {
             const user = auth.currentUser;
-            if (!user) return; // 沒登入就只存本地
+            if (!user) return; 
 
             if (cloudSyncTimer) clearTimeout(cloudSyncTimer);
             cloudSyncTimer = setTimeout(async () => {
@@ -83,7 +80,7 @@
                 } catch (e) {
                     console.error("Auto cloud save failed", e);
                 }
-            }, 1500); // 停止操作 1.5 秒後自動上傳
+            }, 1500); 
         };
 
         // ☁️ 從雲端 Firestore 讀取存檔
@@ -106,7 +103,6 @@
                     updateBoard();
                     logMsg("☁️ 成功從雲端同步遊戲與任務進度！");
                 } else {
-                    // 若雲端尚無存檔，把當前本地存檔推上去
                     window.triggerAutoCloudSave();
                     logMsg("☁️ 已為您在雲端建立全新存檔！");
                 }
@@ -724,7 +720,6 @@
                 const rawStr = `${coins}|${inventory.small},${inventory.large},${inventory.surprise}|${tears}|${choiceCards}|${currentLevel}|${compactSets}|${compactBoard}|${compactGallery}|${mStr}|${permAutoFlag}|${leftSec}`;
                 localStorage.setItem('mamamoo_save', rawStr);
 
-                // ⚡ 每次本地存檔時，自動觸發背景雲端同步！
                 if (typeof window.triggerAutoCloudSave === 'function') {
                     window.triggerAutoCloudSave();
                 }
@@ -802,7 +797,6 @@
                     }
                 });
 
-                // 💡 只有在存檔裡完全沒有任務記錄時，才現場隨機產生一組並立刻鎖定！
                 if (!missionLoaded) {
                     currentMissionData = generateMissionsForLevel(currentLevel);
                 }
@@ -827,17 +821,17 @@
             }
         }
 
-        // --- 🎁 完美過濾新舊玩家的補償系統 ---
+        // --- 🎁 嚴格時間線的補償系統 (新玩家絕對領不到) ---
         function checkAndClaimCompensation() {
+            // 設定維護公告發布的時間點（例如：2026年8月24日中午 12:00）
+            // 只有在這個時間點「之前」就已經建立存檔的玩家才能領取
+            const maintenanceDeadline = new Date("2026-08-24T12:00:00").getTime();
+
             let createTime = localStorage.getItem('player_created_at');
             
             if (!createTime) {
-                const hasOldSave = localStorage.getItem('mamamoo_save') !== null;
-                if (hasOldSave) {
-                    createTime = new Date("2020-01-01T00:00:00").getTime(); // 老玩家保護
-                } else {
-                    createTime = Date.now(); // 新玩家
-                }
+                // 如果是今天才第一次玩的新玩家，我們把他的創角時間記錄為「現在」
+                createTime = Date.now();
                 localStorage.setItem('player_created_at', createTime);
             } else {
                 createTime = parseInt(createTime);
@@ -846,16 +840,13 @@
             const compensations = [
                 {
                     id: "compensation_20260824_1",
-                    maintenanceTime: new Date("2026-08-24T10:00:00").getTime(), 
-                    reward: () => {  choiceCards += 3; },
+                    reward: () => { choiceCards += 3; },
                     msg: "💚 【營運補償公告】\n\n感謝各位木木的耐心等候與熱情測試！\n本次維護已順利完成。\n\n🎁 補償已發放: \n- 萬能自選卡 +3 張 ✨",
                     log: "🎁 成功領取 3 張萬能自選卡補償！"
                 },
-
                 {
                     id: "compensation_20260824_2",
-                    maintenanceTime: new Date("2026-08-24T14:00:00").getTime(), 
-                    reward: () => {  inventory.large += 2; },
+                    reward: () => { inventory.large += 2; },
                     msg: "💚 【營運補償公告】\n\n感謝各位木木的耐心等候與熱情測試！\n本次維護已順利完成。\n\n🎁 補償已發放: \n- 大卡包 +2 包 ✨",
                     log: "🎁 成功領取 2 包大卡包補償！"
                 }
@@ -863,12 +854,14 @@
 
             compensations.forEach(comp => {
                 let claimed = localStorage.getItem(comp.id);
-                if (!claimed && createTime < comp.maintenanceTime) {
+                // 必須符合兩個條件才能領：1. 從來沒領過 2. 玩家的創角時間在維護死線「之前」
+                if (!claimed && createTime < maintenanceDeadline) {
                     comp.reward();
                     localStorage.setItem(comp.id, 'true');
                     alert(comp.msg);
                     logMsg(comp.log);
-                } else if (!claimed && createTime >= comp.maintenanceTime) {
+                } else if (!claimed && createTime >= maintenanceDeadline) {
+                    // 如果是新玩家，直接把補償狀態標記為過期，永遠不發放
                     localStorage.setItem(comp.id, 'expired');
                 }
             });
@@ -1706,7 +1699,6 @@
                 if (item.unlocked) totalUnlocked++;
             });
 
-            const claimedSets = new Set();
             for (let setName in setsGroup) {
                 const title = document.createElement('div');
                 title.className = 'set-title';
@@ -1741,7 +1733,7 @@
 
         window.onload = () => { 
             initGalleryData(); 
-            let hasSave = loadLocalData();
+            let hasSave = loadLocalData(); 
             initBoard(); 
             updateShopUI(); 
             updateGalleryUI(); 

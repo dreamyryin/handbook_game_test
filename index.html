@@ -26,7 +26,7 @@
         import { initializeApp } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-app.js";
         // 💡 確保這裡有引入 signOut
         import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-auth.js";
-        import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-firestore.js";
+        import { getFirestore, doc, setDoc, getDoc, collection, query, orderBy, limit, getDocs } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyDCTEj9NcX7D1H61axz5-ecSImG1WQqQB0",
@@ -101,11 +101,18 @@
                 try {
                     const rawSaveStr = localStorage.getItem('mamamoo_save');
                     const createTime = localStorage.getItem('player_created_at');
+                    
+                    // 🌟 去抓玩家自訂的暱稱，如果還沒設定，就暫時用 Google 名字或匿名
+                    const customName = localStorage.getItem('mamamoo_nickname') || user.displayName || "匿名木木";
 
+                    // 🏆 把等級(level)、金幣(coins)和暱稱獨立存出來，給排行榜排序用
                     await setDoc(doc(db, "game_saves", user.uid), {
                         saveData: rawSaveStr,
                         playerCreatedAt: createTime,
-                        updatedAt: Date.now()
+                        updatedAt: Date.now(),
+                        level: currentLevel,
+                        coins: coins,
+                        displayName: customName
                     });
                     console.log("☁️ 雲端自動同步成功");
                 } catch (e) {
@@ -141,6 +148,76 @@
                 logMsg("❌ 讀取雲端存檔失敗！");
             }
         }
+
+        // 🏆 排行榜與自訂暱稱邏輯
+        window.openLeaderboard = async function() {
+            // 1. 檢查是否登入
+            if (!auth.currentUser) {
+                alert("⚠️ 請先點擊右上角「⚙️ 設定」完成 Google 登入，才能查看或參與全球排行榜喔！");
+                return;
+            }
+
+            // 2. 檢查是否設定過暱稱
+            let nick = localStorage.getItem('mamamoo_nickname');
+            if (!nick) {
+                nick = prompt("請輸入你想在榜單上顯示的專屬暱稱：", auth.currentUser.displayName || "匿名木木");
+                if (nick && nick.trim() !== "") {
+                    localStorage.setItem('mamamoo_nickname', nick.trim());
+                    window.triggerAutoCloudSave(); // 立刻存檔，把新名字推上雲端
+                } else {
+                    return; // 玩家按取消就不打開排行榜
+                }
+            }
+
+            // 3. 打開彈窗並抓取資料
+            document.getElementById('leaderboard-modal').style.display = 'flex';
+            const listEl = document.getElementById('leaderboard-list');
+            listEl.innerHTML = '<div style="text-align:center; padding: 20px;">資料讀取中... ⏳</div>';
+            
+            try {
+                // 依據「等級(level)」由高到低，抓取全球前 50 名
+                const q = query(collection(db, "game_saves"), orderBy("level", "desc"), limit(10));
+                const querySnapshot = await getDocs(q);
+                
+                listEl.innerHTML = '';
+                let rank = 1;
+                querySnapshot.forEach((docSnap) => {
+                    const data = docSnap.data();
+                    let rankIcon = rank === 1 ? '🥇' : (rank === 2 ? '🥈' : (rank === 3 ? '🥉' : `<b style="color:#7f8c8d; font-size:1.1rem; width:25px; display:inline-block; text-align:center;">${rank}</b>`));
+                    
+                    // 如果是自己的帳號，背景亮顯
+                    const isMe = (docSnap.id === auth.currentUser.uid);
+                    const bgCol = isMe ? '#e8f8f5' : (rank % 2 === 0 ? '#fafafa' : '#fff');
+                    
+                    listEl.innerHTML += `
+                        <div style="display:flex; justify-content:space-between; align-items:center; padding: 10px; border-bottom: 1px solid #eee; background: ${bgCol}; border-radius:4px;">
+                            <div style="flex:1; display:flex; align-items:center; gap:8px;">
+                                ${rankIcon} 
+                                <span style="font-weight:bold; color:#2c3e50; font-size:1.05rem;">
+                                    ${data.displayName || "匿名木木"} 
+                                    ${isMe ? '<span style="font-size:0.7rem; color:#1abc9c;">(你)</span>' : ''}
+                                </span>
+                            </div>
+                            <div style="text-align:right; font-size:0.9rem; color:#e74c3c; font-weight:bold;">
+                                Lv.${data.level || 1} <br><span style="color:#f39c12; font-size:0.8rem;">${data.coins || 0} 💰</span>
+                            </div>
+                        </div>
+                    `;
+                    rank++;
+                });
+                
+                if(rank === 1) listEl.innerHTML = '<div style="text-align:center; padding: 20px;">目前還沒有玩家資料喔！</div>';
+                
+            } catch (e) {
+                console.error(e);
+                listEl.innerHTML = '<div style="text-align:center; color:red; padding: 20px;">❌ 讀取失敗！請確認 Firestore 規則已設定。</div>';
+            }
+        };
+
+        window.closeLeaderboard = function() {
+            document.getElementById('leaderboard-modal').style.display = 'none';
+        };
+        
     </script>
 
     <style>
@@ -329,6 +406,7 @@
         <div id="log-area">MAMAMOO 宿舍開啟！</div>
         
         <div style="display: flex; gap: 8px; align-items: center;">
+            <button class="btn-settings" onclick="openLeaderboard()" style="font-size: 1.3rem;">🏆</button>
             <button id="btn-help-global" class="btn-help" onclick="openHelp()">❓</button>
             <button class="btn-settings" onclick="openSettings()">⚙️</button>
         </div>
@@ -487,6 +565,17 @@
         </div>
     </div>
 
+    <!-- 🏆 排行榜彈窗 -->
+    <div id="leaderboard-modal" class="modal-bg" style="z-index: 4500;" onclick="closeLeaderboard()">
+        <div class="modal-container" style="background: white; padding: 20px 15px;" onclick="event.stopPropagation()">
+            <h3 style="margin-top:0; color: #f39c12; border-bottom: 2px solid #eee; padding-bottom: 10px;">🏆 排行榜 (Top 10)</h3>
+            <div id="leaderboard-list" style="max-height: 50vh; overflow-y: auto; text-align: left; font-size: 0.95rem; line-height: 1.6; padding: 5px;">
+                <!-- 排名列表將在此處生成 -->
+            </div>
+            <button class="btn-action" style="background: #95a5a6; padding: 8px; margin-top: 15px;" onclick="closeLeaderboard()">關閉</button>
+        </div>
+    </div>
+    
     <!-- ✨ 沈浸式抽卡彈窗 -->
     <div id="reveal-modal" class="modal-bg" style="z-index: 4000; background: rgba(0,0,0,0.92); flex-direction: column;" onclick="nextReveal()">
         <div style="position: absolute; top: 20px; right: 20px;">

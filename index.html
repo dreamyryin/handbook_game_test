@@ -121,7 +121,7 @@
             }, 1500); 
         };
 
-        async function loadCloudData(uid) {
+       async function loadCloudData(uid) {
             try {
                 const docRef = doc(db, "game_saves", uid);
                 const docSnap = await getDoc(docRef);
@@ -134,6 +134,12 @@
                     if (data.playerCreatedAt) {
                         localStorage.setItem('player_created_at', data.playerCreatedAt);
                     }
+                    
+                    // 🌟 關鍵修復：把雲端記住的專屬暱稱抓下來存進本地！
+                    if (data.displayName) {
+                        localStorage.setItem('mamamoo_nickname', data.displayName);
+                    }
+
                     loadLocalData();
                     updateShopUI();
                     updateGalleryUI();
@@ -153,7 +159,7 @@
         window.openLeaderboard = async function() {
             // 1. 檢查是否登入
             if (!auth.currentUser) {
-                alert("⚠️ 請先點擊右上角「⚙️ 設定」完成 Google 登入，才能查看或參與全球排行榜喔！");
+                alert("⚠️ 請先點擊右上角「⚙️ 設定」完成 Google 登入，才能查看或參與排行榜喔！");
                 return;
             }
 
@@ -175,7 +181,7 @@
             listEl.innerHTML = '<div style="text-align:center; padding: 20px;">資料讀取中... ⏳</div>';
             
             try {
-                // 依據「等級(level)」由高到低，抓取全球前 50 名
+                // 依據「等級(level)」由高到低，抓取前 10 名
                 const q = query(collection(db, "game_saves"), orderBy("level", "desc"), limit(10));
                 const querySnapshot = await getDocs(q);
                 
@@ -216,6 +222,21 @@
 
         window.closeLeaderboard = function() {
             document.getElementById('leaderboard-modal').style.display = 'none';
+        };
+
+        // ✏️ 手動改名功能
+        window.changeNickname = function() {
+            if (!auth.currentUser) return;
+            
+            let oldNick = localStorage.getItem('mamamoo_nickname') || auth.currentUser.displayName || "匿名木木";
+            let newNick = prompt("✏️ 請輸入新的專屬暱稱：", oldNick);
+            
+            if (newNick && newNick.trim() !== "") {
+                localStorage.setItem('mamamoo_nickname', newNick.trim());
+                window.triggerAutoCloudSave(); // 立刻把新名字推上雲端
+                alert("✅ 暱稱已成功更新！(排行榜可能需要幾秒鐘才會刷新)");
+                window.openLeaderboard(); // 重新整理排行榜畫面
+            }
         };
         
     </script>
@@ -602,13 +623,20 @@
         </div>
     </div>
 
-    <!-- 🏆 排行榜彈窗 -->
+   <!-- 🏆 排行榜彈窗 -->
     <div id="leaderboard-modal" class="modal-bg" style="z-index: 4500;" onclick="closeLeaderboard()">
         <div class="modal-container" style="background: white; padding: 20px 15px;" onclick="event.stopPropagation()">
-            <h3 style="margin-top:0; color: #f39c12; border-bottom: 2px solid #eee; padding-bottom: 10px;">🏆 排行榜 (Top 10)</h3>
-            <div id="leaderboard-list" style="max-height: 50vh; overflow-y: auto; text-align: left; font-size: 0.95rem; line-height: 1.6; padding: 5px;">
+            
+            <!-- 標題與改名按鈕並排 -->
+            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #eee; padding-bottom: 10px;">
+                <h3 style="margin: 0; color: #f39c12;">🏆 排行榜 (Top 10)</h3>
+                <button onclick="changeNickname()" style="background: #3498db; color: white; border: none; padding: 5px 10px; border-radius: 5px; font-weight: bold; cursor: pointer; box-shadow: 0 2px 0 #2980b9;">✏️ 改名</button>
+            </div>
+            
+            <div id="leaderboard-list" style="max-height: 50vh; overflow-y: auto; text-align: left; font-size: 0.95rem; line-height: 1.6; padding: 5px; margin-top: 10px;">
                 <!-- 排名列表將在此處生成 -->
             </div>
+            
             <button class="btn-action" style="background: #95a5a6; padding: 8px; margin-top: 15px;" onclick="closeLeaderboard()">關閉</button>
         </div>
     </div>

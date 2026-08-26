@@ -945,7 +945,11 @@
                     leftSec = Math.ceil((autoMergeEndTime - Date.now()) / 1000);
                 }
 
-                // 🌟 核心修復：把超長的圖鑑字串 (compactGallery) 移到最尾巴，前面 13 個欄位永遠固定！
+                // 🌟 把超級肥大的圖鑑獨立存在另一個 localStorage，主存檔永遠保持固定 13 個精準欄位！
+                const compactGallery = galleryData.map(c => c.unlocked ? 1 : 0).join('');
+                localStorage.setItem('mamamoo_gallery', compactGallery);
+
+                // 主存檔結構 (固定 13 個欄位，索引絕不位移)
                 const rawStr = [
                     coins,                                    // 0
                     `${inventory.small},${inventory.large},${inventory.surprise}`, // 1
@@ -953,13 +957,13 @@
                     choiceCards,                              // 3
                     currentLevel,                             // 4
                     compactSets,                              // 5
-                    compactBoard,                             // 6 (外面盤面固定在這)
+                    compactBoard,                             // 6
                     mStr,                                     // 7
                     permAutoFlag,                             // 8
                     leftSec,                                  // 9
                     totalMerges,                              // 10
-                    compactMemBoard,                          // 11 (紀念冊固定在這)
-                    galleryData.map(c => c.unlocked ? 1 : 0).join('') // 12 (超級長的圖鑑丟最後面，絕不影響前面)
+                    compactMemBoard,                          // 11
+                    "1"                                       // 12 (預留位)
                 ].join('|');
 
                 localStorage.setItem('mamamoo_save', rawStr);
@@ -1005,7 +1009,7 @@
                     });
                 }
                 
-                // 🌟 1. 穩穩讀取外面的盤面 (固定在 parts[6])
+                // 1. 讀取外面的盤面 (固定在 parts[6])
                 board = new Array(BOARD_SIZE).fill(null);
                 if (parts[6] && parts[6].includes(':')) {
                     parts[6].split('-').forEach(bItem => {
@@ -1039,6 +1043,7 @@
                     currentMissionData = generateMissionsForLevel(currentLevel);
                 }
 
+                // 2. 讀取一鍵合成狀態 (固定在 parts[8] 和 parts[9])
                 isPermanentAutoMerge = false;
                 autoMergeEndTime = 0;
                 if (parts.length > 8 && parts[8] === '1') {
@@ -1056,7 +1061,7 @@
                     totalMerges = parseInt(parts[10]) || 0;
                 }
 
-                // 🌟 2. 穩穩讀取紀念冊盤面 (固定在 parts[11])
+                // 3. 讀取紀念冊盤面 (固定在 parts[11])
                 memorialBoard = new Array(BOARD_SIZE).fill(null);
                 if (parts.length > 11 && parts[11] && parts[11].includes(':')) {
                     parts[11].split('-').forEach(bItem => {
@@ -1074,11 +1079,11 @@
                     });
                 }
 
-                // 🌟 3. 穩穩讀取超長圖鑑資料 (固定在最後一個欄位 parts[12])
-                let galleryPart = parts[parts.length - 1];
-                if (galleryPart && galleryPart.length === galleryData.length && /^[01]+$/.test(galleryPart)) {
+                // 4. 從獨立的空間讀取圖鑑資料
+                const savedGallery = localStorage.getItem('mamamoo_gallery');
+                if (savedGallery && savedGallery.length === galleryData.length) {
                     galleryData.forEach((c, idx) => {
-                        c.unlocked = (galleryPart[idx] === '1');
+                        c.unlocked = (savedGallery[idx] === '1');
                     });
                 }
                 

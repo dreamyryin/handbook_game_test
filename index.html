@@ -446,7 +446,23 @@
                 <div class="board" id="game-board"></div>
             </div>
             
-            <div id="trash-can">🗑️ 拖曳至此出售</div>
+            <!-- 垃圾桶與紀念冊按鈕 -->
+            <div style="display: flex; gap: 8px; margin-top: 10px; width: 100%;">
+                <div id="trash-can" style="flex: 1; margin-top: 0;">🗑️ 拖曳至此出售</div>
+                <div id="btn-memorial" style="width: 55px; font-size: 1.5rem; display: flex; justify-content: center; align-items: center; background-color: #9b59b6; color: white; border: 2px dashed #8e44ad; border-radius: 8px; box-shadow: inset 0 0 8px rgba(0,0,0,0.2); cursor: pointer;" onclick="openMemorialBook()">📖</div>
+            </div>
+
+            <!-- 📖 紀念冊內部彈窗 -->
+            <div id="memorial-modal" class="modal-bg" style="z-index: 4000; flex-direction: column;" onclick="closeMemorialBook()">
+                <div class="modal-container" style="background: var(--bg-color); position: relative; width: 95%; max-width: 430px; padding: 20px 10px;" onclick="event.stopPropagation()">
+                    <div style="position: absolute; top: 10px; right: 15px; font-size: 1.8rem; cursor: pointer; color: #e74c3c; font-weight: bold;" onclick="closeMemorialBook()">✖</div>
+                    <h3 style="margin: 0 0 5px 0; color: #8e44ad; text-align: center;">📖 紀念冊</h3>
+                    <p style="font-size: 0.8rem; color: #555; text-align: center; margin-top: 0; margin-bottom: 10px;">(拖曳交換位置 / 點擊永久刪除)</p>
+                    <div class="board-container">
+                        <div class="board" id="memorial-board" style="background-color: #8e44ad;"></div>
+                    </div>
+                </div>
+            </div>
             
             <div style="display: flex; gap: 6px; margin-top: 10px; width: 100%; align-items: flex-start;">
                 <button class="btn-spawn" style="flex: 1; background-color: #3498db; box-shadow: 0 3px 0 #2980b9;" onclick="sortBoard()">一鍵整理</button>
@@ -659,6 +675,10 @@
 </div>
 
     <script>
+
+        let totalMerges = 0; // 🌟 我偷偷幫你加的總合成次數
+        let memorialBoard = new Array(BOARD_SIZE).fill(null); // 📖 紀念冊陣列
+        
         let gameCardSets = {};
         if (typeof cardSets !== 'undefined') {
             gameCardSets = cardSets; 
@@ -895,7 +915,16 @@
                     leftSec = Math.ceil((autoMergeEndTime - Date.now()) / 1000);
                 }
 
-                const rawStr = `${coins}|${inventory.small},${inventory.large},${inventory.surprise}|${tears}|${choiceCards}|${currentLevel}|${compactSets}|${compactBoard}|${compactGallery}|${mStr}|${permAutoFlag}|${leftSec}`;
+                let mbStr = [];
+                memorialBoard.forEach((item, idx) => {
+                    if (!item) return;
+                    if (item.type === 'member') mbStr.push(`${idx}:m${charList.indexOf(item.char)}${item.level}`);
+                    else if (item.type === 'cp') mbStr.push(`${idx}:c${charList.indexOf(item.char1)}${charList.indexOf(item.char2)}`);
+                    else if (item.type === 'final') mbStr.push(`${idx}:f`);
+                });
+                const compactMemBoard = mbStr.join('-');
+
+                const rawStr = `${coins}|${inventory.small},${inventory.large},${inventory.surprise}|${tears}|${choiceCards}|${currentLevel}|${compactSets}|${compactBoard}|${compactGallery}|${mStr}|${permAutoFlag}|${leftSec}|${totalMerges}|${compactMemBoard}`;
                 localStorage.setItem('mamamoo_save', rawStr);
 
                 if (typeof window.triggerAutoCloudSave === 'function') {
@@ -991,6 +1020,30 @@
                     if (savedLeftSec > 0 && !isPermanentAutoMerge) {
                         autoMergeEndTime = Date.now() + (savedLeftSec * 1000);
                     }
+                }
+
+                // 🌟 新增：讀取總合成次數 (為了未來的成就系統準備)
+                totalMerges = 0;
+                if (parts.length > 11 && parts[11]) {
+                    totalMerges = parseInt(parts[11]) || 0;
+                }
+
+                // 📖 新增：讀取紀念冊盤面
+                memorialBoard = new Array(BOARD_SIZE).fill(null);
+                if (parts.length > 12 && parts[12]) {
+                    parts[12].split('-').forEach(bItem => {
+                        let [idxStr, valStr] = bItem.split(':');
+                        let idx = parseInt(idxStr);
+                        if (!isNaN(idx) && valStr) {
+                            if (valStr.startsWith('m')) {
+                                memorialBoard[idx] = { type: 'member', char: charList[parseInt(valStr[1])], level: parseInt(valStr.substring(2)) };
+                            } else if (valStr.startsWith('c')) {
+                                memorialBoard[idx] = { type: 'cp', char1: charList[parseInt(valStr[1])], char2: charList[parseInt(valStr[2])] };
+                            } else if (valStr === 'f') {
+                                memorialBoard[idx] = { type: 'final' };
+                            }
+                        }
+                    });
                 }
                 
                 bossActive = false;
@@ -1505,6 +1558,32 @@
                 return;
             }
 
+            // --- 📖 放入紀念冊邏輯 ---
+            const dropMemorial = elements.find(el => el.id === 'btn-memorial');
+            if (dropMemorial && dragSourceIdx !== -1) {
+                const item = board[dragSourceIdx];
+                if (item && (item.type === 'member' || item.type === 'cp' || item.type === 'final')) {
+                    let emptyMemIdx = memorialBoard.findIndex(x => !x);
+                    if (emptyMemIdx === -1) {
+                        logMsg("❌ 紀念冊已經滿了！");
+                    } else {
+                        if (confirm("⚠️ 將卡片放置到紀念冊後就不能再取出了，確定執行？")) {
+                            memorialBoard[emptyMemIdx] = item;
+                            board[dragSourceIdx] = null;
+                            logMsg("📖 已成功放入紀念冊！");
+                            saveLocalData();
+                        } else {
+                            logMsg("✅ 已取消放入！");
+                        }
+                    }
+                } else {
+                    logMsg("⚠️ 這個東西不能放進紀念冊喔！");
+                }
+                dragSourceIdx = -1;
+                updateBoard();
+                return;
+            }
+
             const dropTarget = elements.find(el => el.classList.contains('cell') && el.dataset.index);
             if (dropTarget) {
                 const dropIdx = parseInt(dropTarget.dataset.index);
@@ -2012,6 +2091,123 @@
 
         function getCharName(id) { const f = chars.find(c => c.id === id); return f ? f.name : id; }
 
+        // ==========================================
+        // 📖 紀念冊系統內部邏輯
+        // ==========================================
+        let memDragSourceIdx = -1;
+        let memIsDragging = false;
+        let memStartX = 0, memStartY = 0;
+        let memGhostEl = null;
+
+        window.openMemorialBook = function() {
+            document.getElementById('memorial-modal').style.display = 'flex';
+            initMemorialBoard();
+        };
+        window.closeMemorialBook = function() {
+            document.getElementById('memorial-modal').style.display = 'none';
+        };
+
+        function initMemorialBoard() {
+            const boardEl = document.getElementById('memorial-board');
+            boardEl.innerHTML = '';
+            for (let i = 0; i < BOARD_SIZE; i++) {
+                const cell = document.createElement('div');
+                cell.className = 'cell';
+                cell.dataset.memindex = i;
+                cell.addEventListener('pointerdown', handleMemPointerDown);
+                boardEl.appendChild(cell);
+            }
+            updateMemorialBoard();
+        }
+
+        function updateMemorialBoard() {
+            const cells = document.querySelectorAll('#memorial-board .cell');
+            cells.forEach((cell, index) => {
+                const item = memorialBoard[index];
+                cell.innerHTML = '';
+                cell.style.touchAction = item ? 'none' : 'auto';
+                if (item) {
+                    if (item.type === 'member') cell.innerHTML = `<img src="images/board/${item.char}_${item.level}.jpg" onerror="this.src='';this.alt='找不到圖'">`;
+                    else if (item.type === 'cp') {
+                        let cpName = getCpImageName(item.char1, item.char2);
+                        cell.innerHTML = `<img src="images/board/cp_${cpName}.jpg" onerror="this.src='';this.alt='CP'">`;
+                    }
+                    else if (item.type === 'final') cell.innerHTML = `<img src="images/board/final_mamamoo.jpg" onerror="this.src='';this.alt='完全體'">`;
+                }
+            });
+        }
+
+        function handleMemPointerDown(e) {
+            const index = parseInt(e.currentTarget.dataset.memindex);
+            if (!memorialBoard[index]) return;
+
+            memDragSourceIdx = index;
+            memIsDragging = false;
+            memStartX = e.clientX; memStartY = e.clientY;
+
+            const appRect = appContainer.getBoundingClientRect();
+            memGhostEl = document.createElement('div');
+            memGhostEl.className = e.currentTarget.className + ' ghost';
+            memGhostEl.innerHTML = e.currentTarget.innerHTML;
+            memGhostEl.style.width = e.currentTarget.offsetWidth + 'px';
+            memGhostEl.style.height = e.currentTarget.offsetHeight + 'px';
+            memGhostEl.style.left = (e.clientX - appRect.left) + 'px';
+            memGhostEl.style.top = (e.clientY - appRect.top) + 'px';
+            appContainer.appendChild(memGhostEl);
+
+            e.currentTarget.style.opacity = '0.3';
+
+            document.addEventListener('pointermove', handleMemPointerMove);
+            document.addEventListener('pointerup', handleMemPointerUp);
+            e.currentTarget.releasePointerCapture(e.pointerId);
+        }
+
+        function handleMemPointerMove(e) {
+            if (memGhostEl) {
+                const appRect = appContainer.getBoundingClientRect();
+                memGhostEl.style.left = (e.clientX - appRect.left) + 'px';
+                memGhostEl.style.top = (e.clientY - appRect.top) + 'px';
+                if (Math.abs(e.clientX - memStartX) > 5 || Math.abs(e.clientY - memStartY) > 5) memIsDragging = true;
+            }
+        }
+
+        function handleMemPointerUp(e) {
+            document.removeEventListener('pointermove', handleMemPointerMove);
+            document.removeEventListener('pointerup', handleMemPointerUp);
+            if (memGhostEl) { memGhostEl.remove(); memGhostEl = null; }
+            
+            const cells = document.querySelectorAll('#memorial-board .cell');
+            cells.forEach(c => c.style.opacity = '1');
+
+            if (!memIsDragging && memDragSourceIdx !== -1) {
+                // 點擊事件：跳出刪除警告
+                if (confirm("⚠️ 確定要從紀念冊刪除這張卡片嗎？\n(刪除後無法還原，也不會給金幣)")) {
+                    memorialBoard[memDragSourceIdx] = null;
+                    saveLocalData();
+                }
+                memDragSourceIdx = -1;
+                updateMemorialBoard();
+                return;
+            }
+
+            const elements = document.elementsFromPoint(e.clientX, e.clientY);
+            const dropTarget = elements.find(el => el.classList.contains('cell') && el.dataset.memindex);
+
+            if (dropTarget) {
+                const dropIdx = parseInt(dropTarget.dataset.memindex);
+                if (dropIdx !== memDragSourceIdx) {
+                    // 拖曳事件：兩張卡片交換位置
+                    let temp = memorialBoard[dropIdx];
+                    memorialBoard[dropIdx] = memorialBoard[memDragSourceIdx];
+                    memorialBoard[memDragSourceIdx] = temp;
+                    saveLocalData();
+                }
+            }
+            
+            memDragSourceIdx = -1;
+            updateMemorialBoard();
+        }
+        
         window.onload = () => { 
             initGalleryData(); 
             let hasSave = loadLocalData(); 

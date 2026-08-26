@@ -1143,25 +1143,42 @@
             let taskCount = Math.floor(Math.random() * 3) + 1; 
             let tasks = [];
             
-            for (let i = 0; i < taskCount; i++) {
-                let isCP = (level > 10 && Math.random() < 0.05); 
-                
-                if (isCP) {
-                    tasks.push({ id: 't' + i, text: "合成 1 組任意 CP", char: 'cp', targetLevel: 0, count: 1, reward: 50000, done: false });
-                } else {
-                    let charId = chars[Math.floor(Math.random() * chars.length)].id;
-                    let maxLvl = Math.min(12, Math.max(3, Math.floor(level / 2) + 2));
-                    let minLvl = Math.max(2, maxLvl - 3);
-                    let targetLvl = Math.floor(Math.random() * (maxLvl - minLvl + 1)) + minLvl;
-                    let count = (targetLvl <= 5) ? Math.floor(Math.random() * 3) + 1 : 1; 
-                    
-                    let baseReward = Math.pow(2, targetLvl - 1) * 50; 
-                    let reward = baseReward * count;
-                    reward = Math.floor(reward * (0.8 + Math.random() * 0.4)); 
-                    reward = Math.ceil(reward / 50) * 50; 
+            // 🌟 新增：用來記錄這批已經產生過哪些「任務組合」
+            let usedTaskKeys = new Set(); 
 
-                    tasks.push({ id: 't' + i, text: `${count} 個 ${getCharName(charId)} Lv.${targetLvl}`, char: charId, targetLevel: targetLvl, count: count, reward: reward, done: false });
-                }
+            for (let i = 0; i < taskCount; i++) {
+                let isCP, charId, targetLvl, count, reward, taskObj, taskKey;
+                let attempts = 0; // 防呆機制，避免系統陷入無窮迴圈重抽
+
+                // 🌟 新增：使用 do-while 迴圈，如果抽到重複的就重抽
+                do {
+                    isCP = (level > 10 && Math.random() < 0.05); 
+                    
+                    if (isCP) {
+                        taskKey = 'cp'; // CP任務的專屬標籤
+                        taskObj = { id: 't' + i, text: "合成 1 組任意 CP", char: 'cp', targetLevel: 0, count: 1, reward: 50000, done: false };
+                    } else {
+                        charId = chars[Math.floor(Math.random() * chars.length)].id;
+                        let maxLvl = Math.min(12, Math.max(3, Math.floor(level / 2) + 2));
+                        let minLvl = Math.max(2, maxLvl - 3);
+                        targetLvl = Math.floor(Math.random() * (maxLvl - minLvl + 1)) + minLvl;
+                        count = (targetLvl <= 5) ? Math.floor(Math.random() * 3) + 1 : 1; 
+                        
+                        let baseReward = Math.pow(2, targetLvl - 1) * 50; 
+                        reward = baseReward * count;
+                        reward = Math.floor(reward * (0.8 + Math.random() * 0.4)); 
+                        reward = Math.ceil(reward / 50) * 50; 
+
+                        taskKey = `${charId}-${targetLvl}`; // 建立標籤，例如 "wheein-12"
+                        taskObj = { id: 't' + i, text: `${count} 個 ${getCharName(charId)} Lv.${targetLvl}`, char: charId, targetLevel: targetLvl, count: count, reward: reward, done: false };
+                    }
+                    attempts++;
+                } while (usedTaskKeys.has(taskKey) && attempts < 10); 
+                // ⬆️ 如果這個標籤已經存在，且重抽次數小於 10 次，就繼續重抽
+
+                // 確認沒重複後，把這個任務組合記下來，並加入任務清單
+                usedTaskKeys.add(taskKey); 
+                tasks.push(taskObj);
             }
             return { level: level, tasks: tasks };
         }

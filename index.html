@@ -677,7 +677,6 @@
     <script>
 
         let totalMerges = 0; // 🌟 我偷偷幫你加的總合成次數
-        let memorialBoard = new Array(BOARD_SIZE).fill(null); // 📖 紀念冊陣列
         
         let gameCardSets = {};
         if (typeof cardSets !== 'undefined') {
@@ -696,6 +695,8 @@
         const BOARD_SIZE = 64;
         let board = new Array(BOARD_SIZE).fill(null);
         const chars = [ { id: 'solar', name: '金容容' }, { id: 'moon', name: '文星星' }, { id: 'whee', name: '丁輝妮' }, { id: 'hwa', name: '黑金妮' } ];
+
+        let memorialBoard = new Array(BOARD_SIZE).fill(null); // 📖 紀念冊陣列
 
         let currentLevel = 1;
         let currentMissionData = null;

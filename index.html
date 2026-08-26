@@ -991,23 +991,26 @@
                     });
                 }
                 
+                // --- 🧩 安全讀取外面的盤面 (完美避開紀念冊誤判) ---
                 board = new Array(BOARD_SIZE).fill(null);
-                // 🌟 嚴格指定只讀取第 8 個片段 (索引 7) 的盤面資料，絕不波及紀念冊！
-                if (parts.length > 7 && parts[7]) {
-                    parts[7].split('-').forEach(bItem => {
-                        let [idxStr, valStr] = bItem.split(':');
-                        let idx = parseInt(idxStr);
-                        if (!isNaN(idx) && valStr) {
-                            if (valStr.startsWith('m')) {
-                                board[idx] = { type: 'member', char: charList[parseInt(valStr[1])], level: parseInt(valStr.substring(2)) };
-                            } else if (valStr.startsWith('c')) {
-                                board[idx] = { type: 'cp', char1: charList[parseInt(valStr[1])], char2: charList[parseInt(valStr[2])] };
-                            } else if (valStr === 'f') {
-                                board[idx] = { type: 'final' };
+                parts.forEach((p, pIdx) => {
+                    // pIdx === 7 是外面盤面；確保不抓到最後一個片段的紀念冊 (parts[12])
+                    if (pIdx === 7 && p && p.includes(':')) {
+                        p.split('-').forEach(bItem => {
+                            let [idxStr, valStr] = bItem.split(':');
+                            let idx = parseInt(idxStr);
+                            if (!isNaN(idx) && valStr) {
+                                if (valStr.startsWith('m')) {
+                                    board[idx] = { type: 'member', char: charList[parseInt(valStr[1])], level: parseInt(valStr.substring(2)) };
+                                } else if (valStr.startsWith('c')) {
+                                    board[idx] = { type: 'cp', char1: charList[parseInt(valStr[1])], char2: charList[parseInt(valStr[2])] };
+                                } else if (valStr === 'f') {
+                                    board[idx] = { type: 'final' };
+                                }
                             }
-                        }
-                    });
-                }
+                        });
+                    }
+                });
                 
                 parts.forEach(p => {
                     if (p && p.length === galleryData.length && /^[01]+$/.test(p)) {
@@ -1045,13 +1048,13 @@
                     }
                 }
 
-                // 🌟 新增：讀取總合成次數 (為了未來的成就系統準備)
+                // 🌟 讀取總合成次數 (為了未來的成就系統準備)
                 totalMerges = 0;
                 if (parts.length > 11 && parts[11]) {
                     totalMerges = parseInt(parts[11]) || 0;
                 }
 
-                // 📖 新增：讀取紀念冊盤面
+                // 📖 讀取紀念冊盤面
                 memorialBoard = new Array(BOARD_SIZE).fill(null);
                 if (parts.length > 12 && parts[12]) {
                     parts[12].split('-').forEach(bItem => {

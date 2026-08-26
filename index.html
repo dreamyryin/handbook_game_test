@@ -992,23 +992,22 @@
                 }
                 
                 board = new Array(BOARD_SIZE).fill(null);
-                parts.forEach(p => {
-                    if (p && p.includes(':') && (p.includes('m') || p.includes('c') || p.includes('f'))) {
-                        p.split('-').forEach(bItem => {
-                            let [idxStr, valStr] = bItem.split(':');
-                            let idx = parseInt(idxStr);
-                            if (!isNaN(idx) && valStr) {
-                                if (valStr.startsWith('m')) {
-                                    board[idx] = { type: 'member', char: charList[parseInt(valStr[1])], level: parseInt(valStr.substring(2)) };
-                                } else if (valStr.startsWith('c')) {
-                                    board[idx] = { type: 'cp', char1: charList[parseInt(valStr[1])], char2: charList[parseInt(valStr[2])] };
-                                } else if (valStr === 'f') {
-                                    board[idx] = { type: 'final' };
-                                }
+                // 🌟 嚴格指定只讀取第 8 個片段 (索引 7) 的盤面資料，絕不波及紀念冊！
+                if (parts.length > 7 && parts[7]) {
+                    parts[7].split('-').forEach(bItem => {
+                        let [idxStr, valStr] = bItem.split(':');
+                        let idx = parseInt(idxStr);
+                        if (!isNaN(idx) && valStr) {
+                            if (valStr.startsWith('m')) {
+                                board[idx] = { type: 'member', char: charList[parseInt(valStr[1])], level: parseInt(valStr.substring(2)) };
+                            } else if (valStr.startsWith('c')) {
+                                board[idx] = { type: 'cp', char1: charList[parseInt(valStr[1])], char2: charList[parseInt(valStr[2])] };
+                            } else if (valStr === 'f') {
+                                board[idx] = { type: 'final' };
                             }
-                        });
-                    }
-                });
+                        }
+                    });
+                }
                 
                 parts.forEach(p => {
                     if (p && p.length === galleryData.length && /^[01]+$/.test(p)) {

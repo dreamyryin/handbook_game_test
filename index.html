@@ -1009,7 +1009,7 @@
                     });
                 }
                 
-                // 1. 讀取外面的盤面 (固定在 parts[6])
+                // 🌟 精準對應：外面的盤面就穩穩地在索引 6！
                 board = new Array(BOARD_SIZE).fill(null);
                 if (parts[6] && parts[6].includes(':')) {
                     parts[6].split('-').forEach(bItem => {
@@ -1043,7 +1043,6 @@
                     currentMissionData = generateMissionsForLevel(currentLevel);
                 }
 
-                // 2. 讀取一鍵合成狀態 (固定在 parts[8] 和 parts[9])
                 isPermanentAutoMerge = false;
                 autoMergeEndTime = 0;
                 if (parts.length > 8 && parts[8] === '1') {
@@ -1061,7 +1060,7 @@
                     totalMerges = parseInt(parts[10]) || 0;
                 }
 
-                // 3. 讀取紀念冊盤面 (固定在 parts[11])
+                // 🌟 精準對應：紀念冊盤面在索引 11
                 memorialBoard = new Array(BOARD_SIZE).fill(null);
                 if (parts.length > 11 && parts[11] && parts[11].includes(':')) {
                     parts[11].split('-').forEach(bItem => {
@@ -1079,7 +1078,7 @@
                     });
                 }
 
-                // 4. 從獨立的空間讀取圖鑑資料
+                // 🌟 圖鑑資料從獨立的 localStorage 讀取
                 const savedGallery = localStorage.getItem('mamamoo_gallery');
                 if (savedGallery && savedGallery.length === galleryData.length) {
                     galleryData.forEach((c, idx) => {

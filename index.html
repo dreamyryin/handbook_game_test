@@ -2127,6 +2127,10 @@
                 const item = memorialBoard[index];
                 cell.innerHTML = '';
                 cell.style.touchAction = item ? 'none' : 'auto';
+
+                cell.style.aspectRatio = '1'; 
+                cell.style.display = 'flex';
+                
                 if (item) {
                     if (item.type === 'member') cell.innerHTML = `<img src="images/board/${item.char}_${item.level}.jpg" onerror="this.src='';this.alt='找不到圖'">`;
                     else if (item.type === 'cp') {

@@ -986,30 +986,13 @@
                 const charList = ['solar', 'moon', 'whee', 'hwa'];
                 const setList = Object.keys(gameCardSets);
                 
-                coins = parseInt(parts[0]) || 0;
-                if (parts[1]) {
-                    let invParts = parts[1].split(',');
-                    inventory = { 
-                        small: parseInt(invParts[0]) || 0, 
-                        large: parseInt(invParts[1]) || 0, 
-                        surprise: parseInt(invParts[2]) || 0 
-                    };
-                }
-                
-                tears = parseInt(parts[2]) || 0;
-                choiceCards = parseInt(parts[3]) || 0;
-                currentLevel = parseInt(parts[4]) || 1;
-                
+                // 基礎數值重置
+                coins = 0;
+                inventory = { small: 0, large: 0, surprise: 0 };
+                tears = 0;
+                choiceCards = 0;
+                currentLevel = 1;
                 claimedSets.clear();
-                if (parts[5]) {
-                    parts[5].split('-').forEach(idxStr => {
-                        let idx = parseInt(idxStr);
-                        let sName = setList[idx];
-                        if (sName) claimedSets.add(sName);
-                    });
-                }
-                
-                // --- 🧩 萬能安全檢索：自動找出盤面、任務、一鍵合成與紀念冊 ---
                 board = new Array(BOARD_SIZE).fill(null);
                 memorialBoard = new Array(BOARD_SIZE).fill(null);
                 let missionLoaded = false;
@@ -1017,10 +1000,52 @@
                 autoMergeEndTime = 0;
                 totalMerges = 0;
 
-                parts.forEach((p, pIdx) => {
+                // 標記盤面讀取次數（確保第一個遇到的給外面的盤面，第二個給紀念冊）
+                let boardCount = 0;
+
+                parts.forEach((p, idx) => {
                     if (!p) return;
 
-                    // 1. 任務資料通常是 base64 編碼且包含 json 結構 (例如 eyJ...)
+                    // 1. 金幣 (通常是第一格，或是純數字)
+                    if (idx === 0 && /^\d+$/.test(p)) {
+                        coins = parseInt(p);
+                        return;
+                    }
+
+                    // 2. 道具庫存 (包含逗號，例如 0,0,0)
+                    if (p.includes(',') && p.split(',').length === 3) {
+                        let invParts = p.split(',');
+                        inventory = { 
+                            small: parseInt(invParts[0]) || 0, 
+                            large: parseInt(invParts[1]) || 0, 
+                            surprise: parseInt(invParts[2]) || 0 
+                        };
+                        return;
+                    }
+
+                    // 3. 等級、眼淚、自選卡 (短純數字)
+                    if (/^\d+$/.test(p)) {
+                        let val = parseInt(p);
+                        if (idx === 2) tears = val;
+                        else if (idx === 3) choiceCards = val;
+                        else if (idx === 4) currentLevel = val;
+                        else if (p === '0' || p === '1') {
+                            if (idx === 8 || val === 1 && !isPermanentAutoMerge) isPermanentAutoMerge = (val === 1);
+                        }
+                        return;
+                    }
+
+                    // 4. 已領獎 Set (包含數字與減號，例如 0-1)
+                    if (/^\d+(-\d+)*$/.test(p) && !p.includes(':')) {
+                        p.split('-').forEach(idxStr => {
+                            let sIdx = parseInt(idxStr);
+                            let sName = setList[sIdx];
+                            if (sName) claimedSets.add(sName);
+                        });
+                        return;
+                    }
+
+                    // 5. 任務資料 (Base64 / JSON)
                     if (p.startsWith('ey') || (p.length > 20 && !p.includes(':') && !/^[01]+$/.test(p))) {
                         try {
                             let decodedStr = atob(p);
@@ -1031,41 +1056,28 @@
                                 missionLoaded = true;
                             }
                         } catch(err) {}
+                        return;
                     }
 
-                    // 2. 一鍵合成狀態判斷 (數字 0 或 1，或是剩餘秒數)
-                    if (p === '1' && pIdx === 8) {
-                        isPermanentAutoMerge = true;
-                    }
-                    if (pIdx === 9 && !isNaN(parseInt(p)) && parseInt(p) > 0) {
-                        let savedLeftSec = parseInt(p);
-                        if (savedLeftSec > 0 && !isPermanentAutoMerge) {
-                            autoMergeEndTime = Date.now() + (savedLeftSec * 1000);
-                        }
-                    }
-                    if (pIdx === 10 && !isNaN(parseInt(p))) {
-                        totalMerges = parseInt(p);
-                    }
-
-                    // 3. 帶有卡片特徵的字串 (包含冒號與 m, c, f) -> 自動判斷是盤面還是紀念冊
+                    // 6. 盤面與紀念冊資料 (包含冒號與卡片代碼 m, c, f)
                     if (p.includes(':') && (p.includes('m') || p.includes('c') || p.includes('f'))) {
-                        // 如果是比較前面的當作外面的盤面，後面的當作紀念冊
-                        let target = board.every(cell => cell === null) ? board : memorialBoard;
-                        if (pIdx >= 11) target = memorialBoard; // 確保後半段歸紀念冊
+                        let targetBoard = (boardCount === 0) ? board : memorialBoard;
+                        boardCount++;
 
                         p.split('-').forEach(bItem => {
                             let [idxStr, valStr] = bItem.split(':');
-                            let idx = parseInt(idxStr);
-                            if (!isNaN(idx) && valStr) {
+                            let bIdx = parseInt(idxStr);
+                            if (!isNaN(bIdx) && valStr) {
                                 if (valStr.startsWith('m')) {
-                                    target[idx] = { type: 'member', char: charList[parseInt(valStr[1])], level: parseInt(valStr.substring(2)) };
+                                    target[bIdx] = { type: 'member', char: charList[parseInt(valStr[1])], level: parseInt(valStr.substring(2)) };
                                 } else if (valStr.startsWith('c')) {
-                                    target[idx] = { type: 'cp', char1: charList[parseInt(valStr[1])], char2: charList[parseInt(valStr[2])] };
+                                    target[bIdx] = { type: 'cp', char1: charList[parseInt(valStr[1])], char2: charList[parseInt(valStr[2])] };
                                 } else if (valStr === 'f') {
-                                    target[idx] = { type: 'final' };
+                                    target[bIdx] = { type: 'final' };
                                 }
                             }
                         });
+                        return;
                     }
                 });
 
@@ -1073,11 +1085,11 @@
                     currentMissionData = generateMissionsForLevel(currentLevel);
                 }
 
-                // 4. 圖鑑資料從獨立的 localStorage 讀取
+                // 7. 圖鑑資料從獨立空間讀取
                 const savedGallery = localStorage.getItem('mamamoo_gallery');
                 if (savedGallery && savedGallery.length === galleryData.length) {
-                    galleryData.forEach((c, idx) => {
-                        c.unlocked = (savedGallery[idx] === '1');
+                    galleryData.forEach((c, cIdx) => {
+                        c.unlocked = (savedGallery[cIdx] === '1');
                     });
                 }
                 

@@ -1060,18 +1060,28 @@
                     }
 
                     // 6. 盤面與紀念冊資料 (包含冒號與卡片代碼 m, c, f)
-                    if (p.includes(':') && (p.includes('m') || p.includes('c') || p.includes('f'))) {
-                        let targetBoard = (boardCount === 0) ? board : memorialBoard;
+                   // 6. 盤面與紀念冊資料 (只要包含冒號，且含有 m, c, f 的通通抓出來解析)
+                    if (p.includes(':') && (p.includes(':m') || p.includes(':c') || p.includes(':f'))) {
+                        let target = (boardCount === 0) ? board : memorialBoard;
                         boardCount++;
 
                         p.split('-').forEach(bItem => {
-                            let [idxStr, valStr] = bItem.split(':');
+                            let colonIdx = bItem.indexOf(':');
+                            if (colonIdx === -1) return;
+                            let idxStr = bItem.substring(0, colonIdx);
+                            let valStr = bItem.substring(colonIdx + 1);
                             let bIdx = parseInt(idxStr);
+
                             if (!isNaN(bIdx) && valStr) {
                                 if (valStr.startsWith('m')) {
-                                    target[bIdx] = { type: 'member', char: charList[parseInt(valStr[1])], level: parseInt(valStr.substring(2)) };
+                                    // 容錯解析：支援單雙位數等級 (例如 m02 或 m212)
+                                    let charIdx = parseInt(valStr[1]);
+                                    let lvl = parseInt(valStr.substring(2));
+                                    target[bIdx] = { type: 'member', char: charList[charIdx], level: lvl };
                                 } else if (valStr.startsWith('c')) {
-                                    target[bIdx] = { type: 'cp', char1: charList[parseInt(valStr[1])], char2: charList[parseInt(valStr[2])] };
+                                    let c1 = parseInt(valStr[1]);
+                                    let c2 = parseInt(valStr[2]);
+                                    target[bIdx] = { type: 'cp', char1: charList[c1], char2: charList[c2] };
                                 } else if (valStr === 'f') {
                                     target[bIdx] = { type: 'final' };
                                 }

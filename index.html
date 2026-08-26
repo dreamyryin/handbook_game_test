@@ -258,6 +258,22 @@
             overflow: hidden; 
         }
 
+        /* 🚨 緊急維護全屏紅屏樣式 */
+        #maintenance-screen {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background-color: rgba(192, 57, 43, 0.98);
+            z-index: 99999;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            text-align: center;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        
         #app-container {
             width: 100%; max-width: 430px; 
             height: 100%; 
@@ -420,6 +436,14 @@
     </style>
 </head>
 <body>
+
+ <!-- 🚨 全服緊急維護紅屏畫面 (只要把下方開關打開就會顯示) -->
+    <div id="maintenance-screen">
+        <h1 style="font-size: 2.2rem; margin-bottom: 15px;">🚨 緊急維護中 🚨</h1>
+        <p style="font-size: 1.1rem; line-height: 1.6; max-width: 380px;">
+            伺服器發生異常，請不要進行動作。<br>正在緊急修復中，造成不便敬請見諒！
+        </p>
+    </div>
 
 <div id="app-container">
     <div class="top-bar">
@@ -699,6 +723,9 @@
 
     <script>
 
+        // 🚨 【全服緊急維護開關】只要改成 true，所有人開遊戲就會立刻跳紅屏鎖定！
+        const IS_SERVER_MAINTENANCE = false; 
+        
         let totalMerges = 0; // 🌟 我偷偷幫你加的總合成次數
         
         let gameCardSets = {};

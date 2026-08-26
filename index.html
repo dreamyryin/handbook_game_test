@@ -991,27 +991,7 @@
                     });
                 }
                 
-                // --- 🧩 安全讀取外面的盤面 (完美避開紀念冊誤判) ---
-                board = new Array(BOARD_SIZE).fill(null);
-                parts.forEach((p, pIdx) => {
-                    // pIdx === 7 是外面盤面；確保不抓到最後一個片段的紀念冊 (parts[12])
-                    if (pIdx === 7 && p && p.includes(':')) {
-                        p.split('-').forEach(bItem => {
-                            let [idxStr, valStr] = bItem.split(':');
-                            let idx = parseInt(idxStr);
-                            if (!isNaN(idx) && valStr) {
-                                if (valStr.startsWith('m')) {
-                                    board[idx] = { type: 'member', char: charList[parseInt(valStr[1])], level: parseInt(valStr.substring(2)) };
-                                } else if (valStr.startsWith('c')) {
-                                    board[idx] = { type: 'cp', char1: charList[parseInt(valStr[1])], char2: charList[parseInt(valStr[2])] };
-                                } else if (valStr === 'f') {
-                                    board[idx] = { type: 'final' };
-                                }
-                            }
-                        });
-                    }
-                });
-                
+                // 🌟 圖鑑解鎖狀態
                 parts.forEach(p => {
                     if (p && p.length === galleryData.length && /^[01]+$/.test(p)) {
                         galleryData.forEach((c, idx) => {
@@ -1048,28 +1028,63 @@
                     }
                 }
 
-                // 🌟 讀取總合成次數 (為了未來的成就系統準備)
                 totalMerges = 0;
                 if (parts.length > 11 && parts[11]) {
                     totalMerges = parseInt(parts[11]) || 0;
                 }
 
-                // 📖 讀取紀念冊盤面
+                // --- 🧩 萬能特徵搜尋法：自動抓取外面的盤面與紀念冊 ---
+                board = new Array(BOARD_SIZE).fill(null);
                 memorialBoard = new Array(BOARD_SIZE).fill(null);
-                if (parts.length > 12 && parts[12]) {
-                    parts[12].split('-').forEach(bItem => {
+
+                // 收集所有符合卡片格式 (包含冒號且有 m, c, f) 的片段
+                let boardCandidates = [];
+                parts.forEach((p, pIdx) => {
+                    if (p && p.includes(':') && (p.includes('m') || p.includes('c') || p.includes('f'))) {
+                        // 排除圖鑑的 01 字串
+                        if (!p.length === galleryData.length) {
+                            boardCandidates.push({ index: pIdx, data: p });
+                        }
+                    }
+                });
+
+                // 如果找到候選者，依照慣例：較前面的通常是外面盤面，最後一個是紀念冊
+                if (boardCandidates.length > 0) {
+                    // 解析外面的盤面 (取第一個符合的)
+                    let mainCandidate = boardCandidates[0];
+                    mainCandidate.data.split('-').forEach(bItem => {
                         let [idxStr, valStr] = bItem.split(':');
                         let idx = parseInt(idxStr);
                         if (!isNaN(idx) && valStr) {
                             if (valStr.startsWith('m')) {
-                                memorialBoard[idx] = { type: 'member', char: charList[parseInt(valStr[1])], level: parseInt(valStr.substring(2)) };
+                                board[idx] = { type: 'member', char: charList[parseInt(valStr[1])], level: parseInt(valStr.substring(2)) };
                             } else if (valStr.startsWith('c')) {
-                                memorialBoard[idx] = { type: 'cp', char1: charList[parseInt(valStr[1])], char2: charList[parseInt(valStr[2])] };
+                                board[idx] = { type: 'cp', char1: charList[parseInt(valStr[1])], char2: charList[parseInt(valStr[2])] };
                             } else if (valStr === 'f') {
-                                memorialBoard[idx] = { type: 'final' };
+                                board[idx] = { type: 'final' };
                             }
                         }
                     });
+
+                    // 如果有第二個候選者，或者最後一個片段是紀念冊，把它解析進紀念冊
+                    if (boardCandidates.length > 1) {
+                        let memCandidate = boardCandidates[boardCandidates.length - 1];
+                        if (memCandidate.index !== mainCandidate.index) {
+                            memCandidate.data.split('-').forEach(bItem => {
+                                let [idxStr, valStr] = bItem.split(':');
+                                let idx = parseInt(idxStr);
+                                if (!isNaN(idx) && valStr) {
+                                    if (valStr.startsWith('m')) {
+                                        memorialBoard[idx] = { type: 'member', char: charList[parseInt(valStr[1])], level: parseInt(valStr.substring(2)) };
+                                    } else if (valStr.startsWith('c')) {
+                                        memorialBoard[idx] = { type: 'cp', char1: charList[parseInt(valStr[1])], char2: charList[parseInt(valStr[2])] };
+                                    } else if (valStr === 'f') {
+                                        memorialBoard[idx] = { type: 'final' };
+                                    }
+                                }
+                            });
+                        }
+                    }
                 }
                 
                 bossActive = false;

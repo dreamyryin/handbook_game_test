@@ -916,29 +916,17 @@
                 const charList = ['solar', 'moon', 'whee', 'hwa'];
                 const setList = Object.keys(gameCardSets);
 
+                // 1. 外面盤面
                 let bStr = [];
                 board.forEach((item, idx) => {
                     if (!item) return;
-                    if (item.type === 'member') {
-                        bStr.push(`${idx}:m${charList.indexOf(item.char)}${item.level}`);
-                    } else if (item.type === 'cp') {
-                        bStr.push(`${idx}:c${charList.indexOf(item.char1)}${charList.indexOf(item.char2)}`);
-                    } else if (item.type === 'final') {
-                        bStr.push(`${idx}:f`);
-                    }
+                    if (item.type === 'member') bStr.push(`${idx}:m${charList.indexOf(item.char)}${item.level}`);
+                    else if (item.type === 'cp') bStr.push(`${idx}:c${charList.indexOf(item.char1)}${charList.indexOf(item.char2)}`);
+                    else if (item.type === 'final') bStr.push(`${idx}:f`);
                 });
                 const compactBoard = bStr.join('-'); 
-                const compactSets = Array.from(claimedSets).map(s => setList.indexOf(s)).filter(i => i >= 0).join('-');
-                const compactGallery = galleryData.map(c => c.unlocked ? 1 : 0).join('');
-                
-                const mStr = currentMissionData ? btoa(encodeURIComponent(JSON.stringify(currentMissionData))) : "";
 
-                const permAutoFlag = isPermanentAutoMerge ? 1 : 0;
-                let leftSec = 0;
-                if (!isPermanentAutoMerge && autoMergeEndTime > Date.now()) {
-                    leftSec = Math.ceil((autoMergeEndTime - Date.now()) / 1000);
-                }
-
+                // 2. 紀念冊盤面
                 let mbStr = [];
                 memorialBoard.forEach((item, idx) => {
                     if (!item) return;
@@ -948,7 +936,32 @@
                 });
                 const compactMemBoard = mbStr.join('-');
 
-                const rawStr = `${coins}|${inventory.small},${inventory.large},${inventory.surprise}|${tears}|${choiceCards}|${currentLevel}|${compactSets}|${compactBoard}|${compactGallery}|${mStr}|${permAutoFlag}|${leftSec}|${totalMerges}|${compactMemBoard}`;
+                const compactSets = Array.from(claimedSets).map(s => setList.indexOf(s)).filter(i => i >= 0).join('-');
+                const mStr = currentMissionData ? btoa(encodeURIComponent(JSON.stringify(currentMissionData))) : "";
+
+                const permAutoFlag = isPermanentAutoMerge ? 1 : 0;
+                let leftSec = 0;
+                if (!isPermanentAutoMerge && autoMergeEndTime > Date.now()) {
+                    leftSec = Math.ceil((autoMergeEndTime - Date.now()) / 1000);
+                }
+
+                // 🌟 核心修復：把超長的圖鑑字串 (compactGallery) 移到最尾巴，前面 13 個欄位永遠固定！
+                const rawStr = [
+                    coins,                                    // 0
+                    `${inventory.small},${inventory.large},${inventory.surprise}`, // 1
+                    tears,                                    // 2
+                    choiceCards,                              // 3
+                    currentLevel,                             // 4
+                    compactSets,                              // 5
+                    compactBoard,                             // 6 (外面盤面固定在這)
+                    mStr,                                     // 7
+                    permAutoFlag,                             // 8
+                    leftSec,                                  // 9
+                    totalMerges,                              // 10
+                    compactMemBoard,                          // 11 (紀念冊固定在這)
+                    galleryData.map(c => c.unlocked ? 1 : 0).join('') // 12 (超級長的圖鑑丟最後面，絕不影響前面)
+                ].join('|');
+
                 localStorage.setItem('mamamoo_save', rawStr);
 
                 if (typeof window.triggerAutoCloudSave === 'function') {
@@ -984,26 +997,36 @@
                 currentLevel = parseInt(parts[4]) || 1;
                 
                 claimedSets.clear();
-                if (parts[5] && !parts[5].includes('m') && !parts[5].includes('eyJ') && !/^[01]{10,}$/.test(parts[5])) {
-                    parts[5].split('-').forEach(idx => {
-                        let sName = setList[parseInt(idx)];
+                if (parts[5]) {
+                    parts[5].split('-').forEach(idxStr => {
+                        let idx = parseInt(idxStr);
+                        let sName = setList[idx];
                         if (sName) claimedSets.add(sName);
                     });
                 }
                 
-                // 🌟 圖鑑解鎖狀態
-                parts.forEach(p => {
-                    if (p && p.length === galleryData.length && /^[01]+$/.test(p)) {
-                        galleryData.forEach((c, idx) => {
-                            c.unlocked = (p[idx] === '1');
-                        });
-                    }
-                });
+                // 🌟 1. 穩穩讀取外面的盤面 (固定在 parts[6])
+                board = new Array(BOARD_SIZE).fill(null);
+                if (parts[6] && parts[6].includes(':')) {
+                    parts[6].split('-').forEach(bItem => {
+                        let [idxStr, valStr] = bItem.split(':');
+                        let idx = parseInt(idxStr);
+                        if (!isNaN(idx) && valStr) {
+                            if (valStr.startsWith('m')) {
+                                board[idx] = { type: 'member', char: charList[parseInt(valStr[1])], level: parseInt(valStr.substring(2)) };
+                            } else if (valStr.startsWith('c')) {
+                                board[idx] = { type: 'cp', char1: charList[parseInt(valStr[1])], char2: charList[parseInt(valStr[2])] };
+                            } else if (valStr === 'f') {
+                                board[idx] = { type: 'final' };
+                            }
+                        }
+                    });
+                }
                 
                 let missionLoaded = false;
-                if (parts.length > 8 && parts[8]) {
+                if (parts.length > 7 && parts[7]) {
                     try {
-                        let decodedStr = atob(parts[8]);
+                        let decodedStr = atob(parts[7]);
                         try { decodedStr = decodeURIComponent(decodedStr); } catch(e) {} 
                         currentMissionData = JSON.parse(decodedStr);
                         missionLoaded = true;
@@ -1018,73 +1041,45 @@
 
                 isPermanentAutoMerge = false;
                 autoMergeEndTime = 0;
-                if (parts.length > 9 && parts[9] === '1') {
+                if (parts.length > 8 && parts[8] === '1') {
                     isPermanentAutoMerge = true;
                 }
-                if (parts.length > 10 && parts[10]) {
-                    let savedLeftSec = parseInt(parts[10]) || 0;
+                if (parts.length > 9 && parts[9]) {
+                    let savedLeftSec = parseInt(parts[9]) || 0;
                     if (savedLeftSec > 0 && !isPermanentAutoMerge) {
                         autoMergeEndTime = Date.now() + (savedLeftSec * 1000);
                     }
                 }
 
                 totalMerges = 0;
-                if (parts.length > 11 && parts[11]) {
-                    totalMerges = parseInt(parts[11]) || 0;
+                if (parts.length > 10 && parts[10]) {
+                    totalMerges = parseInt(parts[10]) || 0;
                 }
 
-                // --- 🧩 萬能特徵搜尋法：自動抓取外面的盤面與紀念冊 ---
-                board = new Array(BOARD_SIZE).fill(null);
+                // 🌟 2. 穩穩讀取紀念冊盤面 (固定在 parts[11])
                 memorialBoard = new Array(BOARD_SIZE).fill(null);
-
-                // 收集所有符合卡片格式 (包含冒號且有 m, c, f) 的片段
-                let boardCandidates = [];
-                parts.forEach((p, pIdx) => {
-                    if (p && p.includes(':') && (p.includes('m') || p.includes('c') || p.includes('f'))) {
-                        // 排除圖鑑的 01 字串
-                        if (!p.length === galleryData.length) {
-                            boardCandidates.push({ index: pIdx, data: p });
-                        }
-                    }
-                });
-
-                // 如果找到候選者，依照慣例：較前面的通常是外面盤面，最後一個是紀念冊
-                if (boardCandidates.length > 0) {
-                    // 解析外面的盤面 (取第一個符合的)
-                    let mainCandidate = boardCandidates[0];
-                    mainCandidate.data.split('-').forEach(bItem => {
+                if (parts.length > 11 && parts[11] && parts[11].includes(':')) {
+                    parts[11].split('-').forEach(bItem => {
                         let [idxStr, valStr] = bItem.split(':');
                         let idx = parseInt(idxStr);
                         if (!isNaN(idx) && valStr) {
                             if (valStr.startsWith('m')) {
-                                board[idx] = { type: 'member', char: charList[parseInt(valStr[1])], level: parseInt(valStr.substring(2)) };
+                                memorialBoard[idx] = { type: 'member', char: charList[parseInt(valStr[1])], level: parseInt(valStr.substring(2)) };
                             } else if (valStr.startsWith('c')) {
-                                board[idx] = { type: 'cp', char1: charList[parseInt(valStr[1])], char2: charList[parseInt(valStr[2])] };
+                                memorialBoard[idx] = { type: 'cp', char1: charList[parseInt(valStr[1])], char2: charList[parseInt(valStr[2])] };
                             } else if (valStr === 'f') {
-                                board[idx] = { type: 'final' };
+                                memorialBoard[idx] = { type: 'final' };
                             }
                         }
                     });
+                }
 
-                    // 如果有第二個候選者，或者最後一個片段是紀念冊，把它解析進紀念冊
-                    if (boardCandidates.length > 1) {
-                        let memCandidate = boardCandidates[boardCandidates.length - 1];
-                        if (memCandidate.index !== mainCandidate.index) {
-                            memCandidate.data.split('-').forEach(bItem => {
-                                let [idxStr, valStr] = bItem.split(':');
-                                let idx = parseInt(idxStr);
-                                if (!isNaN(idx) && valStr) {
-                                    if (valStr.startsWith('m')) {
-                                        memorialBoard[idx] = { type: 'member', char: charList[parseInt(valStr[1])], level: parseInt(valStr.substring(2)) };
-                                    } else if (valStr.startsWith('c')) {
-                                        memorialBoard[idx] = { type: 'cp', char1: charList[parseInt(valStr[1])], char2: charList[parseInt(valStr[2])] };
-                                    } else if (valStr === 'f') {
-                                        memorialBoard[idx] = { type: 'final' };
-                                    }
-                                }
-                            });
-                        }
-                    }
+                // 🌟 3. 穩穩讀取超長圖鑑資料 (固定在最後一個欄位 parts[12])
+                let galleryPart = parts[parts.length - 1];
+                if (galleryPart && galleryPart.length === galleryData.length && /^[01]+$/.test(galleryPart)) {
+                    galleryData.forEach((c, idx) => {
+                        c.unlocked = (galleryPart[idx] === '1');
+                    });
                 }
                 
                 bossActive = false;

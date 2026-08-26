@@ -492,7 +492,7 @@
                 <button class="btn-action btn-special" onclick="openPack('surprise')">撕開【驚喜卡包】</button>
                 
                 <div style="margin-top: 15px; font-size: 0.9rem; font-weight: bold;">💧 木木的眼淚 (<span id="tears-count">0</span>/30)</div>
-                <div class="tears-bar-container"><div class="tears-bar" id="tears-bar"></div></div>
+                <div class="tears-bar-container" onclick="triggerTearsEgg()"><div class="tears-bar" id="tears-bar"></div></div>
             </div>
             <div id="result-display">等待拆卡...</div>
         </div>
@@ -1863,6 +1863,44 @@
                 logMsg("💧 木木的眼淚集滿！獲得一張自選卡！");
             }
         }
+
+        // --- 🥚 隱藏彩蛋：連點 5 次眼淚計量條 ---
+        let tearsClickCount = 0;
+        let tearsClickTimer = null;
+
+        window.triggerTearsEgg = function() {
+            // 如果已經領過，就直接中斷，當作沒事發生
+            if (localStorage.getItem('claimed_egg_tears')) return;
+
+            tearsClickCount++;
+            
+            // 如果 2 秒內沒繼續點，就歸零重新計算
+            if (tearsClickTimer) clearTimeout(tearsClickTimer);
+            tearsClickTimer = setTimeout(() => {
+                tearsClickCount = 0;
+            }, 2000); 
+
+            // 連續點擊達到 5 次
+            if (tearsClickCount >= 5) {
+                tearsClickCount = 0; // 歸零
+                clearTimeout(tearsClickTimer);
+                
+                // 標記為已領取，以後再也點不出來了
+                localStorage.setItem('claimed_egg_tears', 'true');
+                
+                // 呼叫原本的加眼淚函數
+                addTears(); 
+                
+                // 🌟 換成你專屬的神級台詞
+                logMsg("💧 木木神看見了你的渴望 擠出了一滴眼淚給你");
+                updateShopUI();
+                
+                // 觸發雲端存檔
+                if (typeof window.triggerAutoCloudSave === 'function') {
+                    window.triggerAutoCloudSave();
+                }
+            }
+        };
 
         function useChoiceCard() {
             if (choiceCards <= 0) { logMsg("❌ 你沒有自選卡！"); return; }

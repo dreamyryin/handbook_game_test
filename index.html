@@ -453,11 +453,47 @@
         .help-content { color: var(--text-dark); text-align: left; line-height: 1.5; font-size: 0.95rem;}
         .help-content p { margin: 10px 0; }
         .help-content b { font-size: 1.05rem; display: block; margin-top: 12px; color: #2e7d32; }
+
+        /* 🚨 永久常駐搬家橫幅樣式 */
+        #migration-banner {
+            position: sticky;
+            top: 0;
+            left: 0;
+            width: 100%;
+            background: linear-gradient(45deg, #e74c3c, #c0392b);
+            color: white;
+            padding: 10px;
+            text-align: center;
+            font-weight: bold;
+            font-size: 0.9rem;
+            z-index: 99999;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+            box-sizing: border-box;
+        }
+        #migration-banner a {
+            color: #f1c40f;
+            text-decoration: underline;
+            background: rgba(0,0,0,0.2);
+            padding: 2px 6px;
+            border-radius: 4px;
+            display: inline-block;
+            margin-top: 4px;
+        }
+        
     </style>
 </head>
 <body>
 
- <!-- 🚨 全服緊急維護紅屏畫面 (只要把下方開關打開就會顯示) -->
+    <!-- 🚨 永久常駐搬家橫幅 -->
+    <div id="migration-banner">
+        🚨 網站已搬家！請先點右上角 ⚙️ 至設定複製引繼碼<br>
+        再點擊新網址前往繼續遊玩：<br>
+        <a href="https://dreamyryin.github.io/mamamoo_handbook_game/?openExternalBrowser=1" target="_blank">
+            👉 點我前往 MAMAMOO 新版遊戲主站 👈
+        </a>
+    </div>
+
+    <!-- 🚨 全服緊急維護紅屏畫面 (只要把下方開關打開就會顯示) -->
     <div id="maintenance-screen">
         <h1 style="font-size: 2.2rem; margin-bottom: 15px;">🚨 緊急維護中 🚨</h1>
         <p style="font-size: 1.1rem; line-height: 1.6; max-width: 380px;">

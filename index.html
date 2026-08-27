@@ -118,19 +118,22 @@
                     const rawSaveStr = localStorage.getItem('mamamoo_save');
                     const createTime = localStorage.getItem('player_created_at');
                     
-                    // 🌟 去抓玩家自訂的暱稱，如果還沒設定，就暫時用 Google 名字或匿名
+                    // 🌟 這裡！把圖鑑也從 LocalStorage 抓出來！
+                    const galStr = localStorage.getItem('mamamoo_gallery') || "";
+                    
                     const customName = localStorage.getItem('mamamoo_nickname') || user.displayName || "匿名木木";
 
-                    // 🏆 把等級(level)、金幣(coins)和暱稱獨立存出來，給排行榜排序用
+                    // 🏆 把圖鑑 (galleryData) 一起推上雲端！
                     await setDoc(doc(db, "game_saves", user.uid), {
                         saveData: rawSaveStr,
+                        galleryData: galStr,  // 👈 新增這行！
                         playerCreatedAt: createTime,
                         updatedAt: Date.now(),
                         level: currentLevel,
                         coins: coins,
                         displayName: customName
                     });
-                    console.log("☁️ 雲端自動同步成功");
+                    console.log("☁️ 雲端自動同步成功 (包含圖鑑)");
                 } catch (e) {
                     console.error("Auto cloud save failed", e);
                 }
@@ -147,11 +150,15 @@
                     if (data.saveData) {
                         localStorage.setItem('mamamoo_save', data.saveData);
                     }
+                    
+                    // 🌟 這裡！把雲端的圖鑑拉下來，塞回 LocalStorage！
+                    if (data.galleryData) {
+                        localStorage.setItem('mamamoo_gallery', data.galleryData);
+                    }
+                    
                     if (data.playerCreatedAt) {
                         localStorage.setItem('player_created_at', data.playerCreatedAt);
                     }
-                    
-                    // 🌟 關鍵修復：把雲端記住的專屬暱稱抓下來存進本地！
                     if (data.displayName) {
                         localStorage.setItem('mamamoo_nickname', data.displayName);
                     }
@@ -160,7 +167,7 @@
                     updateShopUI();
                     updateGalleryUI();
                     updateBoard();
-                    logMsg("☁️ 成功從雲端同步遊戲與任務進度！");
+                    logMsg("☁️ 成功從雲端同步遊戲與圖鑑進度！");
                 } else {
                     window.triggerAutoCloudSave();
                     logMsg("☁️ 已為您在雲端建立全新存檔！");

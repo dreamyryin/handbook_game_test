@@ -2335,6 +2335,12 @@
         }
         
         window.onload = () => { 
+
+             if (typeof IS_SERVER_MAINTENANCE !== 'undefined' && IS_SERVER_MAINTENANCE) {
+                document.getElementById('maintenance-screen').style.display = 'flex';
+                return; // 直接中斷，不執行後續讀檔與遊戲初始化
+            }
+            
             initGalleryData(); 
             let hasSave = loadLocalData(); 
             initBoard(); 

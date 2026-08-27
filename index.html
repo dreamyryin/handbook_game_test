@@ -487,7 +487,7 @@
                     </div>
                 </div>
             </div>
-                   
+                    
             <!-- 下方按鈕區塊 (左右兩大區塊) -->
             <div style="display: flex; gap: 6px; margin-top: 10px; width: 100%; align-items: flex-start;">
                 
@@ -668,9 +668,15 @@
             <div id="settings-credits" style="display:none; text-align:left;">
                 <h3 style="margin:0 0 10px 0; color:#2c3e50; text-align:center;">📝 Credits</h3>
                 <div style="font-size:0.85rem; color:#555; max-height:50vh; overflow-y:auto; line-height:1.4; padding: 0 5px;">
-                    <p style="margin-top:0;"><b>作者碎碎念:</b><br>其實就是想玩圖鑑蒐集遊戲但是找不到喜歡的所以想說自己搞吧。一開始還很笨想說每個人放五六百張的話那我乾脆手動抓，還好我有先去查。Gallery-dl真的是個好東西，推薦大家使用，八千多張照片幾十分鐘就自動下載好了。但篩選我真的不知道Python能不能，我覺得不行，所以就手動挑了。結果很崩潰啊，安黑金小姐太多背對的照片了；丁輝妮放的全是勾某，很怕她們兩個照片不夠。合照的部分也是手動查重的，有重複敬請見諒。<br><br>If you would like to offer suggestions, you can message moomoo_sh3d on threads.</p>
+                    <p style="margin-top:0;"><b>作者碎碎念:</b><br>其實就是想玩圖鑑蒐集遊戲但是找不到喜歡的所以想說自己搞吧。一開始還很笨想說每個人放五六百張的話那我乾脆手動抓，還好我有先去查。Gallery-dl真的是個好東西，推薦大家使用，八千多張照片幾十分鐘就自動下載好了。但篩選我真的不知道Python能不能，我覺得不行，所以就手動挑了。結果很崩潰啊，安黑金小姐太多背對的照片了；丁輝妮放的全是勾某，很怕她們兩個照片不夠。合照的部分也是手動查重的，有重複敬請見諒。<br><br> 如果你非常好心的想提供我建議，可以私訊moomoo_sh3d的threads.</p>
                     <p><b>credits</b><br>槓龜圖：ETtoday<br>圖鑑圖片：<br>solarkeem<br>mo_onbyul<br>whee_inthemood<br>_mariahwasa</p>
                     <p><b>特別感謝</b><br>Gallery-dl<br>Gemini</p>
+                    <p style="line-height: 1.8;">
+                        <b>聯絡我:</b><br>
+                        IG / Threads : moomoo_sh3d<br>
+                        Gmail : smallcat.07.08@gmail.com 
+                        <button onclick="copyContactText('smallcat.07.08@gmail.com')" style="background:#3498db; color:white; border:none; border-radius:4px; padding:3px 8px; font-size:0.75rem; cursor:pointer; margin-left:5px; box-shadow:0 2px 0 #2980b9; font-weight:bold;">複製</button>
+                    </p>
                 </div>
                 <button class="btn-action" style="background:#95a5a6; padding:8px; margin-top:15px;" onclick="backToSettings()">返回</button>
             </div>
@@ -723,7 +729,7 @@
 
     <script>
 
-        // 🚨 【全服緊急維護開關】只要改成 true，所有人開遊戲就會立刻跳紅屏鎖定！
+        // 🚨 【全服緊急維護開關】如果還要修別的東西，可以改回 true 鎖住玩家
         const IS_SERVER_MAINTENANCE = false; 
         
         let totalMerges = 0; // 🌟 我偷偷幫你加的總合成次數
@@ -1037,13 +1043,9 @@
                     });
                 }
                 
-                // 初始化盤面
-                board = new Array(BOARD_SIZE).fill(null);
-                memorialBoard = new Array(BOARD_SIZE).fill(null);
-
-                // 2. 🛡️ 雙保險解析盤面（先嘗試精準索引，失敗自動改用萬能搜尋）
+                // 2. 🌟 智慧防覆蓋盤面讀取 (Smart Fallback)
+                let tempBoard = new Array(BOARD_SIZE).fill(null);
                 let rawMainBoard = parts[6] || "";
-                let rawMemBoard = parts[11] || "";
 
                 // 如果精準索引抓不到東西，改用迴圈盲找所有符合卡片特徵的片段
                 if (!rawMainBoard.includes(':')) {
@@ -1054,11 +1056,11 @@
                         }
                     });
                     if (founds.length > 0) rawMainBoard = founds[0];
-                    if (founds.length > 1) rawMemBoard = founds[1];
+                    if (founds.length > 1) parts[11] = founds[1]; // 順便把紀念冊的字串救回來
                 }
 
                 // 解析外面的盤面
-                if (rawMainBoard.includes(':')) {
+                if (rawMainBoard && rawMainBoard.includes(':')) {
                     rawMainBoard.split('-').forEach(bItem => {
                         let colonIdx = bItem.indexOf(':');
                         if (colonIdx === -1) return;
@@ -1067,36 +1069,20 @@
 
                         if (!isNaN(bIdx) && valStr) {
                             if (valStr.startsWith('m')) {
-                                board[bIdx] = { type: 'member', char: charList[parseInt(valStr[1])], level: parseInt(valStr.substring(2)) };
+                                tempBoard[bIdx] = { type: 'member', char: charList[parseInt(valStr[1])], level: parseInt(valStr.substring(2)) };
                             } else if (valStr.startsWith('c')) {
-                                board[bIdx] = { type: 'cp', char1: charList[parseInt(valStr[1])], char2: charList[parseInt(valStr[2])] };
+                                tempBoard[bIdx] = { type: 'cp', char1: charList[parseInt(valStr[1])], char2: charList[parseInt(valStr[2])] };
                             } else if (valStr === 'f') {
-                                board[bIdx] = { type: 'final' };
+                                tempBoard[bIdx] = { type: 'final' };
                             }
                         }
                     });
+                    board = tempBoard;
+                } else if (parts.length > 6) {
+                    // 如果字串裡面真的是空的盤面，那就把空盤面套用上去
+                    board = tempBoard;
                 }
 
-                // 解析紀念冊
-                if (rawMemBoard.includes(':')) {
-                    rawMemBoard.split('-').forEach(bItem => {
-                        let colonIdx = bItem.indexOf(':');
-                        if (colonIdx === -1) return;
-                        let bIdx = parseInt(bItem.substring(0, colonIdx));
-                        let valStr = bItem.substring(colonIdx + 1);
-
-                        if (!isNaN(bIdx) && valStr) {
-                            if (valStr.startsWith('m')) {
-                                memorialBoard[bIdx] = { type: 'member', char: charList[parseInt(valStr[1])], level: parseInt(valStr.substring(2)) };
-                            } else if (valStr.startsWith('c')) {
-                                memorialBoard[bIdx] = { type: 'cp', char1: charList[parseInt(valStr[1])], char2: charList[parseInt(valStr[2])] };
-                            } else if (valStr === 'f') {
-                                memorialBoard[bIdx] = { type: 'final' };
-                            }
-                        }
-                    });
-                }
-                
                 // 3. 任務資料讀取
                 let missionLoaded = false;
                 parts.forEach(p => {
@@ -1113,7 +1099,7 @@
                     }
                 });
 
-                if (!missionLoaded) {
+                if (!missionLoaded && !currentMissionData) {
                     currentMissionData = generateMissionsForLevel(currentLevel);
                 }
 
@@ -1123,29 +1109,57 @@
                 if (parts.length > 8 && parts[8] === '1') {
                     isPermanentAutoMerge = true;
                 }
-                parts.forEach(p => {
-                    if (p === '1' && !isPermanentAutoMerge) {
-                        // 稍微檢索是否有被放在其他位置的永久開關
-                    }
-                });
                 if (parts.length > 9 && parts[9]) {
                     let savedLeftSec = parseInt(parts[9]) || 0;
                     if (savedLeftSec > 0 && !isPermanentAutoMerge) {
                         autoMergeEndTime = Date.now() + (savedLeftSec * 1000);
                     }
                 }
-
+                
                 totalMerges = 0;
                 if (parts.length > 10 && parts[10]) {
                     totalMerges = parseInt(parts[10]) || 0;
                 }
 
-                // 5. 圖鑑資料從獨立空間讀取
-                const savedGallery = localStorage.getItem('mamamoo_gallery');
-                if (savedGallery && savedGallery.length === galleryData.length) {
-                    galleryData.forEach((c, cIdx) => {
-                        c.unlocked = (savedGallery[cIdx] === '1');
+                // 5. 解析紀念冊
+                let tempMemBoard = new Array(BOARD_SIZE).fill(null);
+                let rawMemBoard = parts[11] || "";
+                if (rawMemBoard && rawMemBoard.includes(':')) {
+                    rawMemBoard.split('-').forEach(bItem => {
+                        let colonIdx = bItem.indexOf(':');
+                        if (colonIdx === -1) return;
+                        let bIdx = parseInt(bItem.substring(0, colonIdx));
+                        let valStr = bItem.substring(colonIdx + 1);
+
+                        if (!isNaN(bIdx) && valStr) {
+                            if (valStr.startsWith('m')) {
+                                tempMemBoard[bIdx] = { type: 'member', char: charList[parseInt(valStr[1])], level: parseInt(valStr.substring(2)) };
+                            } else if (valStr.startsWith('c')) {
+                                tempMemBoard[bIdx] = { type: 'cp', char1: charList[parseInt(valStr[1])], char2: charList[parseInt(valStr[2])] };
+                            } else if (valStr === 'f') {
+                                tempMemBoard[bIdx] = { type: 'final' };
+                            }
+                        }
                     });
+                    memorialBoard = tempMemBoard;
+                }
+                
+                // --- 🌟 插入這段：自動相容並打撈舊版引繼碼裡面的圖鑑！ ---
+                parts.forEach(p => {
+                    // 如果發現字串長度超過 100，而且裡面「只有 0 和 1」，那絕對是舊版的圖鑑資料！
+                    if (p && p.length > 100 && /^[01]+$/.test(p)) {
+                        localStorage.setItem('mamamoo_gallery', p); // 直接幫他升級存入新版獨立空間！
+                    }
+                });
+
+                // 6. 🌟 寬鬆圖鑑資料讀取 (有多少讀多少，絕不因為長度不合而歸零)
+                const savedGallery = localStorage.getItem('mamamoo_gallery');
+                if (savedGallery) {
+                    for (let cIdx = 0; cIdx < galleryData.length; cIdx++) {
+                        if (cIdx < savedGallery.length) {
+                            galleryData[cIdx].unlocked = (savedGallery[cIdx] === '1');
+                        }
+                    }
                 }
                 
                 bossActive = false;
@@ -1180,12 +1194,26 @@
                     reward: () => { inventory.large += 2; },
                     msg: "💚 【營運補償公告】\n\n感謝各位木木的耐心等候與熱情測試！\n本次維護已順利完成。\n\n🎁 補償已發放: \n- 大卡包 +2 包 ✨",
                     log: "🎁 成功領取 2 包大卡包補償！"
+                },
+                {
+                    id: "compensation_20260826_1",
+                    reward: () => { choiceCards += 3; },
+                    msg: "💚 【營運補償公告】\n\n感謝各位木木的耐心等候與熱情測試！\n本次維護已完成。\n\n🎁 補償已發放: \n- 萬能自選卡 +3 張 ✨\n\n----------------------------\n⚠️ **【緊急公告】**\n因本次維護改動較大，若遇到進度遺失，請直接私訊 **moomoo_sh3d** 的 Threads 或 IG，會再幫您手動加回遺失的卡牌！",
+                    log: "🎁 成功領取3張萬能自選卡補償！"
+                },
+                // 🌟 新增：強力終極補償包，強制配發給所有玩家！
+                {
+                    id: "compensation_20260827_1", 
+                    reward: () => { choiceCards += 5; }, 
+                    msg: "💚 【致歉與補償公告】\n\n因為系統異常，導致部分木木的圖鑑資料遺失，在此向大家鄭重道歉。\n\n🎁 若您的資料有遺失，請在「設定 -> credits」找到我的聯絡方式，將【目前的引繼碼】用 Email 或私訊寄給我，並告訴我您大約損失的圖鑑數量。\n\n我會幫您手動加回並把新的引繼碼回傳給您！",
+                    log: "🎁 在此期間，先提供您5張自選卡。"
                 }
             ];
 
             compensations.forEach(comp => {
                 let claimed = localStorage.getItem(comp.id);
-                if (!claimed && createTime < maintenanceDeadline) {
+                // 這裡我們讓這包 20260827_fix 所有玩家都能拿到，不限時間
+                if (!claimed && (createTime < maintenanceDeadline || comp.id === "compensation_20260827_fix")) {
                     comp.reward();
                     localStorage.setItem(comp.id, 'true');
                     alert(comp.msg);
@@ -1233,19 +1261,24 @@
             document.getElementById('settings-menu').style.display = 'block';
         }
 
+        // 🌟 產生新版引繼碼（包含盤面與圖鑑，用 ### 隔開）
         function generateTransferCode() {
             saveLocalData();
-            const rawStr = localStorage.getItem('mamamoo_save');
+            const rawStr = localStorage.getItem('mamamoo_save') || "";
+            const galStr = localStorage.getItem('mamamoo_gallery') || "";
+            
             if (rawStr) {
+                const combinedStr = rawStr + "###" + galStr;
                 const inputEl = document.getElementById('transfer-code-input');
-                inputEl.value = btoa(rawStr);
+                inputEl.value = btoa(combinedStr);
                 inputEl.select(); 
-                logMsg("✅ 成功產生！這已是壓縮極限！");
+                logMsg("✅ 成功產生！已包含盤面與圖鑑進度！");
             } else {
                 logMsg("❌ 產生引繼碼失敗！");
             }
         }
 
+        // 🌟 讀取新版引繼碼（相容舊版沒包圖鑑的格式）
         function applyTransferCode() {
             const code = document.getElementById('transfer-code-input').value.trim();
             if (!code) { logMsg("⚠️ 請先貼上引繼碼！"); return; }
@@ -1271,15 +1304,28 @@
             }
 
             try {
-                const rawStr = atob(code);
-                localStorage.setItem('mamamoo_save', rawStr);
+                const decodedStr = atob(code);
+                let saveStr = decodedStr;
+                let galStr = "";
+
+                if (decodedStr.includes("###")) {
+                    const parts = decodedStr.split("###");
+                    saveStr = parts[0];
+                    galStr = parts[1];
+                }
+
+                localStorage.setItem('mamamoo_save', saveStr);
+                if (galStr) {
+                    localStorage.setItem('mamamoo_gallery', galStr);
+                }
+
                 loadLocalData();
                 updateShopUI();
                 updateGalleryUI();
                 updateBoard();
                 backToSettings();
                 closeSettings();
-                logMsg("🎉 進度讀取成功！歡迎回來！");
+                logMsg("🎉 進度與圖鑑讀取成功！歡迎回來！");
             } catch (e) {
                 logMsg("❌ 引繼碼損毀或版本不符，讀取失敗！");
             }
@@ -2334,6 +2380,46 @@
             updateMemorialBoard();
         }
         
+        // --- 📋 一鍵複製聯絡資訊功能 ---
+        window.copyContactText = function(text) {
+            // 嘗試使用現代剪貼簿 API
+            if (navigator.clipboard && window.isSecureContext) {
+                navigator.clipboard.writeText(text).then(() => {
+                    logMsg("✅ 已複製：" + text);
+                }).catch(() => fallbackCopyText(text));
+            } else {
+                fallbackCopyText(text);
+            }
+        };
+
+        // --- 📋 一鍵複製聯絡資訊功能 ---
+        window.copyContactText = function(text) {
+            if (navigator.clipboard && window.isSecureContext) {
+                navigator.clipboard.writeText(text).then(() => {
+                    logMsg("✅ 已複製信箱：" + text);
+                }).catch(() => fallbackCopyText(text));
+            } else {
+                fallbackCopyText(text);
+            }
+        };
+
+        function fallbackCopyText(text) {
+            let textArea = document.createElement("textarea");
+            textArea.value = text;
+            textArea.style.position = "fixed";
+            textArea.style.left = "-9999px"; 
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
+            try {
+                document.execCommand('copy');
+                logMsg("✅ 已複製信箱：" + text);
+            } catch (err) {
+                alert("⚠️ 複製失敗，請手動選取複製！");
+            }
+            document.body.removeChild(textArea);
+        }
+        
         window.onload = () => { 
 
              if (typeof IS_SERVER_MAINTENANCE !== 'undefined' && IS_SERVER_MAINTENANCE) {
@@ -2344,6 +2430,7 @@
             initGalleryData(); 
             let hasSave = loadLocalData(); 
             initBoard(); 
+            initMemorialBoard();
             updateShopUI(); 
             updateGalleryUI(); 
 

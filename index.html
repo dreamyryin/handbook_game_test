@@ -2,10 +2,7 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-    <meta http-equiv="Pragma" content="no-cache">
-    <meta http-equiv="Expires" content="0">
-    
+
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>MAMAMOO 合成 GAME</title>
     
@@ -2400,18 +2397,6 @@
             memDragSourceIdx = -1;
             updateMemorialBoard();
         }
-        
-        // --- 📋 一鍵複製聯絡資訊功能 ---
-        window.copyContactText = function(text) {
-            // 嘗試使用現代剪貼簿 API
-            if (navigator.clipboard && window.isSecureContext) {
-                navigator.clipboard.writeText(text).then(() => {
-                    logMsg("✅ 已複製：" + text);
-                }).catch(() => fallbackCopyText(text));
-            } else {
-                fallbackCopyText(text);
-            }
-        };
 
         // --- 📋 一鍵複製聯絡資訊功能 ---
         window.copyContactText = function(text) {

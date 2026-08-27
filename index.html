@@ -26,7 +26,7 @@
         import { initializeApp } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-app.js";
         // 💡 確保這裡有引入 signOut
         import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-auth.js";
-        import { getFirestore, doc, setDoc, getDoc, collection, query, orderBy, limit, getDocs } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-firestore.js";
+        import { getFirestore, doc, setDoc, getDoc, collection, query, orderBy, limit, getDocs, onSnapshot } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyDCTEj9NcX7D1H61axz5-ecSImG1WQqQB0",
@@ -40,6 +40,22 @@
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
+
+        // 🚨 實時監聽全服維護狀態 (GM 一鍵開關)
+        const maintenanceDocRef = doc(db, "system", "status");
+        onSnapshot(maintenanceDocRef, (docSnap) => {
+            if (docSnap.exists()) {
+                const data = docSnap.data();
+                const screen = document.getElementById('maintenance-screen');
+                if (data.isMaintenance === true) {
+                    // 只要資料庫變成 true，瞬間鎖定全服玩家畫面！
+                    if (screen) screen.style.display = 'flex';
+                } else {
+                    // 變成 false 就自動解除
+                    if (screen) screen.style.display = 'none';
+                }
+            }
+        });
 
         window.faAuth = auth;
         window.faDb = db;
@@ -729,8 +745,6 @@
 
     <script>
 
-        // 🚨 【全服緊急維護開關】如果還要修別的東西，可以改回 true 鎖住玩家
-        const IS_SERVER_MAINTENANCE = false; 
         
         let totalMerges = 0; // 🌟 我偷偷幫你加的總合成次數
         
@@ -2421,11 +2435,6 @@
         }
         
         window.onload = () => { 
-
-             if (typeof IS_SERVER_MAINTENANCE !== 'undefined' && IS_SERVER_MAINTENANCE) {
-                document.getElementById('maintenance-screen').style.display = 'flex';
-                return; // 直接中斷，不執行後續讀檔與遊戲初始化
-            }
             
             initGalleryData(); 
             let hasSave = loadLocalData(); 

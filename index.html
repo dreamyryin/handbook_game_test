@@ -463,35 +463,6 @@
         .help-content { color: var(--text-dark); text-align: left; line-height: 1.5; font-size: 0.95rem;}
         .help-content p { margin: 10px 0; }
         .help-content b { font-size: 1.05rem; display: block; margin-top: 12px; color: #2e7d32; }
-
-        /* 🚨 修正後的絕對置頂搬家橫幅 */
-        /* 🚨 完美置中的搬家橫幅樣式 */
-        #migration-banner {
-            position: absolute;
-            top: 20%; /* 距離手機畫面頂端 20% 的高度，你可以自己改數字（例如改成 15% 或是 30%） */
-            left: 50%;
-            transform: translateX(-50%); /* 這一行能讓它左右絕對置中 */
-            width: 90%; /* 寬度佔手機的 90%，旁邊留一點空隙才好看 */
-            background: linear-gradient(45deg, #e74c3c, #c0392b);
-            color: white;
-            padding: 12px;
-            text-align: center;
-            font-weight: bold;
-            font-size: 0.9rem;
-            z-index: 99999;
-            border-radius: 8px; /* 加個圓角讓它看起來像漂亮的彈窗 */
-            box-shadow: 0 4px 15px rgba(0,0,0,0.4);
-            box-sizing: border-box;
-        }
-        #migration-banner a {
-            color: #f1c40f;
-            text-decoration: underline;
-            background: rgba(0,0,0,0.3);
-            padding: 4px 8px;
-            border-radius: 4px;
-            display: inline-block;
-            margin-top: 6px;
-        }
         
     </style>
 </head>
@@ -508,15 +479,6 @@
     </div>
 
 <div id="app-container">
-
-    <!-- 🚨 永久常駐搬家橫幅 -->
-    <div id="migration-banner">
-        🚨 網站已搬家！請先點右上角 ⚙️ 至設定複製引繼碼<br>
-        再點擊新網址前往繼續遊玩：<br>
-        <a href="https://dreamyryin.github.io/mamamoo_handbook_game/?openExternalBrowser=1" target="_blank">
-            👉 點我前往 MAMAMOO 新版遊戲主站 👈
-        </a>
-    </div>
     
     <div class="top-bar">
         <div class="coin-area">💰 <span id="coins">0</span></div>

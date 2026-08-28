@@ -1885,7 +1885,9 @@
 
         function triggerRandomEvent() {
             if (!document.getElementById('page-merge').classList.contains('active')) return;
+            
             if (bossActive) return;
+            if (bossActive || board.some(i => i && (i.type === 'boss' || i.type === 'boss_part'))) return;
             
             const emptyIndices = [];
             board.forEach((item, idx) => { if (!item) emptyIndices.push(idx); });

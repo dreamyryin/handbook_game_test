@@ -38,18 +38,41 @@
         const auth = getAuth(app);
         const db = getFirestore(app);
 
-        // 🚨 實時監聽全服維護狀態 (GM 一鍵開關)
+        // 🚨 實時監聽全服維護與智慧公告狀態
         const maintenanceDocRef = doc(db, "system", "status");
         onSnapshot(maintenanceDocRef, (docSnap) => {
             if (docSnap.exists()) {
                 const data = docSnap.data();
                 const screen = document.getElementById('maintenance-screen');
+                const titleEl = document.getElementById('maintenance-title');
+                const textEl = document.getElementById('maintenance-text');
+        
+                const marqueeContainer = document.getElementById('marquee-container');
+                const marqueeContent = document.getElementById('marquee-content');
+
+                // 1. 處理維護紅屏
                 if (data.isMaintenance === true) {
-                    // 只要資料庫變成 true，瞬間鎖定全服玩家畫面！
+                    if (titleEl && data.title) titleEl.innerText = data.title;
+                    if (textEl && data.text) textEl.innerHTML = data.text;
                     if (screen) screen.style.display = 'flex';
                 } else {
-                    // 變成 false 就自動解除
                     if (screen) screen.style.display = 'none';
+                }
+
+                // 2. 處理智慧公告列（短字靜態、長字跑馬燈）
+                if (data.isAnnouncementActive === true && data.announcementText) {
+                    marqueeContent.innerText = data.announcementText;
+            
+                    // 💡 超過 15 個字自動變成跑馬燈滾動，否則保持靜態置中
+                    if (data.announcementText.length > 15) {
+                        marqueeContent.classList.add('is-long');
+                    } else {
+                        marqueeContent.classList.remove('is-long');
+                    }
+
+                    marqueeContainer.style.display = 'block';
+                } else {
+                    marqueeContainer.style.display = 'none';
                 }
             }
         });
@@ -303,6 +326,39 @@
             padding: 20px;
             box-sizing: border-box;
         }
+
+        /* 📢 公告列外框 (預設隱藏，不常駐) */
+        #marquee-container {
+            display: none;
+            background: linear-gradient(90deg, #f39c12, #e67e22);
+            color: white;
+            padding: 6px 15px;
+            font-size: 0.85rem;
+            font-weight: bold;
+            overflow: hidden;
+            white-space: nowrap;
+            position: relative;
+            z-index: 90;
+            box-shadow: inset 0 -2px 5px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+
+        /* 靜態顯示模式（短文字） */
+        #marquee-content {
+            display: inline-block;
+        }
+
+        /*  長文字才會自動套用的滾動動畫模式 */
+        #marquee-content.is-long {
+            padding-left: 100%;
+            animation: marqueeScroll 12s linear infinite;
+        }
+
+        @keyframes marqueeScroll {
+            0% { transform: translate(0, 0); }
+            100% { transform: translate(-100%, 0); }
+        }
+        
         
         #app-container {
             width: 100%; max-width: 430px; 
@@ -470,10 +526,10 @@
 
     
 
-    <!-- 🚨 全服緊急維護紅屏畫面 (只要把下方開關打開就會顯示) -->
+    <!-- 🚨 全服緊急維護紅屏畫面 -->
     <div id="maintenance-screen">
-        <h1 style="font-size: 2.2rem; margin-bottom: 15px;">🚨 緊急維護中 🚨</h1>
-        <p style="font-size: 1.1rem; line-height: 1.6; max-width: 380px;">
+        <h1 id="maintenance-title" style="font-size: 2.2rem; margin-bottom: 15px;">🚨 緊急維護中 🚨</h1>
+        <p id="maintenance-text" style="font-size: 1.1rem; line-height: 1.6; max-width: 380px;">
             伺服器發生異常，請不要進行動作。<br>正在緊急修復中，造成不便敬請見諒！
         </p>
     </div>
@@ -489,6 +545,11 @@
             <button id="btn-help-global" class="btn-help" onclick="openHelp()">❓</button>
             <button class="btn-settings" onclick="openSettings()">⚙️</button>
         </div>
+    </div>
+
+    <!-- 📢 動態公告/智慧跑馬燈列 -->
+    <div id="marquee-container">
+        <div id="marquee-content">載入公告中...</div>
     </div>
 
     <div class="main-content">

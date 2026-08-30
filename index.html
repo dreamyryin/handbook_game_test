@@ -59,16 +59,19 @@
                     if (screen) screen.style.display = 'none';
                 }
 
-                // 2. 處理智慧公告列
+                // 2. 處理智慧公告列（短字靜態、長字跑馬燈）
                 if (data.isAnnouncementActive === true && data.announcementText) {
-    
-                    // 💡 如果字數大於40個字，自動複製兩份並啟動跑馬燈
+            
                     if (data.announcementText.length > 40) {
-                        // 讓文字重複兩次，中間加個空格或小圖示隔開
-                        marqueeContent.innerText = data.announcementText + "      " + data.announcementText;
+                        // 💡 長文字：複製兩份，並用 padding-right 確保兩句話中間有固定的安全距離
+                        marqueeContent.innerHTML = `
+                            <span style="padding-right: 50px;">${data.announcementText}</span>
+                            <span style="padding-right: 50px;">${data.announcementText}</span>
+                        `;
                         marqueeContent.classList.add('is-long');
                     } else {
-                        marqueeContent.innerText = data.announcementText;
+                        // 短文字：直接顯示
+                        marqueeContent.innerHTML = data.announcementText;
                         marqueeContent.classList.remove('is-long');
                     }
 
@@ -348,17 +351,18 @@
         /* 靜態顯示模式（短文字） */
         #marquee-content {
             display: inline-block;
+            white-space: nowrap;
         }
 
+        /* 🏃‍♂️ 完美無縫滾動模式 */
         #marquee-content.is-long {
-            display: inline-block;
-            padding-left: 100%;
-            animation: marqueeScroll 12s linear infinite;
+            padding-left: 0; /* ❌ 絕對不能加 100% */
+            animation: marqueeScroll 10s linear infinite; /* 秒數越小跑越快，可自行微調 */
         }
 
         @keyframes marqueeScroll {
             0% { transform: translateX(0); }
-            100% { transform: translateX(-50%); } /* 滾到 50% 就瞬間重置，達成無縫！ */
+            100% { transform: translateX(-50%); } /* 滾到一半瞬間重置，達成無縫！ */
         }
         
         

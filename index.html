@@ -64,7 +64,7 @@
                     marqueeContent.innerText = data.announcementText;
             
                     // 💡 超過 15 個字自動變成跑馬燈滾動，否則保持靜態置中
-                    if (data.announcementText.length > 35) {
+                    if (data.announcementText.length > 40) {
                         marqueeContent.classList.add('is-long');
                     } else {
                         marqueeContent.classList.remove('is-long');

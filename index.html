@@ -63,7 +63,7 @@
                 if (data.isAnnouncementActive === true && data.announcementText) {
                     marqueeContent.innerText = data.announcementText;
             
-                    // 💡 超過 15 個字自動變成跑馬燈滾動，否則保持靜態置中
+                    // 💡 超過40個字自動變成跑馬燈滾動，否則保持靜態置中
                     if (data.announcementText.length > 40) {
                         marqueeContent.classList.add('is-long');
                     } else {
@@ -348,15 +348,21 @@
             display: inline-block;
         }
 
-        /*  長文字才會自動套用的滾動動畫模式 */
+        /* 🏃‍♂️ 修改後的無縫跑馬燈動畫模式 */
         #marquee-content.is-long {
-            padding-left: 100%;
-            animation: marqueeScroll 12s linear infinite;
-        }
+            display: inline-block;
+            padding-left: 100%; /* 讓文字從右側畫面外開始進場 */
+            animation: marqueeScroll 15s linear infinite;
+        }        
 
         @keyframes marqueeScroll {
-            0% { transform: translate(0, 0); }
-            100% { transform: translate(-100%, 0); }
+            0% {
+                transform: translate(0, 0);
+            }
+            100% {
+                /* 讓文字剛好滾完自己的長度就立刻重來，不會有大片空白 */
+                transform: translate(-100%, 0);
+            }
         }
         
         

@@ -686,6 +686,7 @@
         <div class="modal-container" onclick="event.stopPropagation()">
             <div id="settings-menu">
                 <h3 style="margin:0 0 15px 0; color:#2c3e50;">⚙️ 設定</h3>
+                <button id="btn-toggle-skin" class="btn-action" style="background: linear-gradient(45deg, #e67e22, #d35400);" onclick="toggleSkin()">👗 切換造型 (目前: 預設)</button>
                 <!-- ⚡ 按鈕 ID 在這，會隨狀態變更顏色與文字 -->
                 <button id="btn-google-login" class="btn-action" style="background: linear-gradient(45deg, #4285F4, #34A853);" onclick="window.loginWithGoogleCloud()">☁️ Google 登入與同步</button>
                 <button class="btn-action" onclick="showTransferMenu()">🔄 進度轉移 (引繼碼)</button>
@@ -862,6 +863,24 @@
 
         let memorialBoard = new Array(BOARD_SIZE).fill(null); // 📖 紀念冊陣列
 
+        // 🌟 新增：記錄當前的造型 (1 為預設，2 為第二造型)
+        let currentSkin = localStorage.getItem('mamamoo_skin') || '1';
+
+        window.toggleSkin = function() {
+            currentSkin = currentSkin === '1' ? '2' : '1';
+            localStorage.setItem('mamamoo_skin', currentSkin);
+    
+            // 更新按鈕文字
+            const btn = document.getElementById('btn-toggle-skin');
+            if (btn) btn.innerText = `👗 切換造型 (目前: ${currentSkin === '1' ? '預設' : '造型2'})`;
+    
+            logMsg(`✨ 已切換至 ${currentSkin === '1' ? '預設造型' : '造型2'}！`);
+    
+            // 重新渲染畫面，讓新造型立刻生效
+            updateBoard();
+            updateMemorialBoard();
+        };
+        
         let currentLevel = 1;
         let currentMissionData = null;
         let hwasaTimerId = null;
@@ -1612,7 +1631,8 @@
                 
                 if (item) {
                     if (item.type === 'member') {
-                        cell.innerHTML = `<img src="images/board/${item.char}_${item.level}.jpg" onerror="this.src='';this.alt='找不到圖'">`;
+                        let suffix = currentSkin === '2' ? '_2' : '';
+                        cell.innerHTML = `<img src="images/board/${item.char}_${item.level}${suffix}.jpg" onerror="this.src='';this.alt='找不到圖'">`;
                     } else if (item.type === 'cp') {
                         let cpName = getCpImageName(item.char1, item.char2);
                         cell.innerHTML = `<img src="images/board/cp_${cpName}.jpg" onerror="this.src='';this.alt='CP'">`;
@@ -1676,7 +1696,8 @@
                 if (task.char === 'cp') {
                     iconHtml = `<div style="width:40px; height:40px; display:flex; justify-content:center; align-items:center; background:#e1bee7; border-radius:6px; margin-right:10px; border:2px dashed #9c27b0; font-size:12px; font-weight:bold; color:#4a148c; flex-shrink:0;">CP</div>`;
                 } else {
-                    iconHtml = `<img src="images/board/${task.char}_${task.targetLevel}.jpg" style="width:40px; height:40px; object-fit:cover; border-radius:6px; margin-right:10px; background:#fff; flex-shrink:0; box-shadow:0 1px 3px rgba(0,0,0,0.2);" onerror="this.src='';this.alt='圖'">`;
+                    let suffix = currentSkin === '2' ? '_2' : '';
+                    iconHtml = `<img src="images/board/${task.char}_${task.targetLevel}${suffix}.jpg" style="width:40px; height:40px; object-fit:cover; border-radius:6px; margin-right:10px; background:#fff; flex-shrink:0; box-shadow:0 1px 3px rgba(0,0,0,0.2);" onerror="this.src='';this.alt='圖'">`;
                 }
 
                 let textContent = `
@@ -2085,8 +2106,8 @@
             grid.innerHTML = '';
             for (let i = 1; i <= 12; i++) {
                 const box = document.createElement('div');
-                box.className = `evo-cell`;
-                box.innerHTML = `<img src="images/board/${item.char}_${i}.jpg" onerror="this.src='';this.alt='Lv.${i}'">`;
+                let suffix = currentSkin === '2' ? '_2' : '';
+                box.innerHTML = `<img src="images/board/${item.char}_${i}${suffix}.jpg" onerror="this.src='';this.alt='Lv.${i}'">`;
                 grid.appendChild(box);
             }
             document.getElementById('evo-modal').style.display = 'flex';
@@ -2411,7 +2432,10 @@
                 cell.style.display = 'flex';
                 
                 if (item) {
-                    if (item.type === 'member') cell.innerHTML = `<img src="images/board/${item.char}_${item.level}.jpg" onerror="this.src='';this.alt='找不到圖'">`;
+                    if (item.type === 'member') {
+                        let suffix = currentSkin === '2' ? '_2' : '';
+                        cell.innerHTML = `<img src="images/board/${item.char}_${item.level}${suffix}.jpg" onerror="this.src='';this.alt='找不到圖'">`;
+                    }
                     else if (item.type === 'cp') {
                         let cpName = getCpImageName(item.char1, item.char2);
                         cell.innerHTML = `<img src="images/board/cp_${cpName}.jpg" onerror="this.src='';this.alt='CP'">`;
@@ -2532,6 +2556,9 @@
             setInterval(updateAutoButtonUI, 1000);
 
             checkAndClaimCompensation();
+
+            const skinBtn = document.getElementById('btn-toggle-skin');
+            if (skinBtn) skinBtn.innerText = `👗 切換造型 (目前: ${currentSkin === '1' ? '預設' : '造型2'})`;
             
             if (hasSave) logMsg("✅ 已自動為您讀取上次遊玩進度！");
         };

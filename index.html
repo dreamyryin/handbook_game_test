@@ -1641,6 +1641,76 @@
             updateBoard();
         }
 
+       // --- 🥚 隱藏彩蛋：MAMAMOO 將會繼續下去 / We are MAMAMOO ---
+        let isWillContinuePlaying = false; // 防止重複瘋狂觸發的開關
+
+        function checkSkin2EasterEgg() {
+            // 條件 1：必須是第二套造型
+            if (currentSkin !== '2') {
+                isWillContinuePlaying = false; 
+                return;
+            }
+
+            let isPatternFound = false;
+
+            // 盤面是 8x8，我們逐列檢查 (row 0~7)
+            for (let row = 0; row < 8; row++) {
+                for (let col = 0; col <= 4; col++) {
+                    let i1 = row * 8 + col;
+                    let i2 = i1 + 1;
+                    let i3 = i1 + 2;
+                    let i4 = i1 + 3;
+
+                    let c1 = board[i1], c2 = board[i2], c3 = board[i3], c4 = board[i4];
+
+                    // 條件 2 & 3：Lv.6 且順序必須是 玟星(moon) -> 頌樂(solar) -> 輝人(whee) -> 華莎(hwa)
+                    if (
+                        c1 && c1.type === 'member' && c1.char === 'moon' && c1.level === 6 &&
+                        c2 && c2.type === 'member' && c2.char === 'solar' && c2.level === 6 &&
+                        c3 && c3.type === 'member' && c3.char === 'whee' && c3.level === 6 &&
+                        c4 && c4.type === 'member' && c4.char === 'hwa' && c4.level === 6
+                    ) {
+                        isPatternFound = true;
+                        break;
+                    }
+                }
+                if (isPatternFound) break;
+            }
+
+            // 條件達成，且目前沒有正在播放中
+            if (isPatternFound && !isWillContinuePlaying) {
+                isWillContinuePlaying = true; // 鎖上開關
+        
+                // 🌟 隨機選擇音效與對應的字幕提示
+                const easterEggs = [
+                    { 
+                        file: 'audios/mamamoo_will_continue.mp3', 
+                        msg: '✨ MAMAMOO 會繼續！ ✨' 
+                    },
+                    { 
+                        file: 'audios/we_are_mememoo.mp3', // 依照你指定的檔名 
+                        msg: '✨ 我們是 咩咩木！ ✨' 
+                    }
+                ];
+        
+                // 隨機抽 0 還是 1
+                const pick = Math.floor(Math.random() * easterEggs.length);
+                const selectedEgg = easterEggs[pick];
+        
+                // 播放選中的音效
+                let audio = new Audio(selectedEgg.file);
+                audio.play().catch(err => console.log("音效播放被阻擋", err));
+        
+                // 顯示對應的字幕
+                logMsg(selectedEgg.msg);
+        
+            } 
+            // 如果盤面被破壞（玩家把卡片移走），就解鎖開關
+            else if (!isPatternFound) {
+                isWillContinuePlaying = false;
+            }
+        }
+
         function updateBoard() {
             const cells = document.querySelectorAll('.cell');
             cells.forEach((cell, index) => {
@@ -1703,6 +1773,7 @@
             }
             updateTaskUI(); 
             updateAutoButtonUI(); 
+            checkSkin2EasterEgg();
             saveLocalData(); 
         }
 

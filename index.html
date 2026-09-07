@@ -702,7 +702,7 @@
                         <!-- 🌟 5 張全部都是相同大小的 2x2 正方形網格 (每排 2 個) -->
                         <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-bottom: 10px; justify-items: center;">
                             <div class="epic-slot" data-card="final_mamamoo" ondragover="allowDrop(event)" ondrop="dropEpicCard(event, 'final_mamamoo')" style="width: 70px; height: 70px; border: 2px dashed #aaa; display: flex; justify-content: center; align-items: center; font-size: 11px; color: #ccc; background: #333; position: relative; overflow: hidden;">家族卡</div>
-                            <div class="epic-slot" data-card="mamamoo_plus" ondragover="allowDrop(event)" ondrop="dropEpicCard(event, 'mamamoo_plus')" style="width: 70px; height: 70px; border: 2px dashed #aaa; display: flex; justify-content: center; align-items: center; font-size: 11px; color: #ccc; background: #333; position: relative; overflow: hidden;">M+</div>
+                            <div class="epic-slot" data-card="mamamoo_plus" ondragover="allowDrop(event)" ondrop="dropEpicCard(event, 'mamamoo_plus')" style="width: 70px; height: 70px; border: 2px dashed #aaa; display: flex; justify-content: center; align-items: center; font-size: 11px; color: #ccc; background: #333; position: relative; overflow: hidden;">Mamamoo+</div>
                             <div class="epic-slot" data-card="seventeen_card" ondragover="allowDrop(event)" ondrop="dropEpicCard(event, 'seventeen_card')" style="width: 70px; height: 70px; border: 2px dashed #aaa; display: flex; justify-content: center; align-items: center; font-size: 11px; color: #ccc; background: #333; position: relative; overflow: hidden;">17</div>
                             <div class="epic-slot" data-card="first_win" ondragover="allowDrop(event)" ondrop="dropEpicCard(event, 'first_win')" style="width: 70px; height: 70px; border: 2px dashed #aaa; display: flex; justify-content: center; align-items: center; font-size: 11px; color: #ccc; background: #333; position: relative; overflow: hidden;">初一位</div>
                             <!-- 第五張未知卡獨立置中排在下方，尺寸一樣是 70x70 正方形 -->
@@ -2066,7 +2066,7 @@
                     }
 
                     // 🌟 統一價格設定 (例如統一為 5000 金幣，你可以自己改數字)
-                    const uniformPrice = 5000;
+                    const uniformPrice = 10000;
 
                     let confirmSell = confirm(`⚠️ 警告！你即將出售【${itemName}】！\n售出可獲得 ${uniformPrice} 💰，確定要賣掉嗎？`);
                     if (!confirmSell) {
@@ -2223,24 +2223,29 @@
                     board[srcIdx] = null; 
                     logMsg("🎉 合成出 MAMAMOO 完全體 (家族卡)！"); 
                 } 
-                else if (srcItem.char1 === targetItem.char1 && srcItem.char2 === targetItem.char2) {
-                    let cpPair = [srcItem.char1, srcItem.char2].sort().join('_');
-                    if (cpPair === 'moon_solar') {
-                        board[targetIdx] = { type: 'epic', id: 'mamamoo_plus' }; 
-                        board[srcIdx] = null; 
-                        logMsg(`🎉 解鎖史詩卡片：Mamamoo+！`);
-                    } else if (cpPair === 'hwa_whee') {
-                        board[targetIdx] = { type: 'epic', id: 'seventeen_card' }; 
-                        board[srcIdx] = null; 
-                        logMsg(`🎉 解鎖史詩卡片：17！`);
+                else {
+                    // 🌟 修正：不論順序如何（例如 hwa_whee 或 whee_hwa），都先排序後再組合成標準字串比對
+                    let pairA = [srcItem.char1, srcItem.char2].sort().join('_');
+                    let pairB = [targetItem.char1, targetItem.char2].sort().join('_');
+
+                    // 檢查兩張 CP 卡是否完全相同
+                    if (pairA === pairB) {
+                        if (pairA === 'moon_solar') {
+                            board[targetIdx] = { type: 'epic', id: 'mamamoo_plus' }; 
+                            board[srcIdx] = null; 
+                            logMsg(`🎉 解鎖史詩卡片：Mamamoo+！`);
+                        } else if (pairA === 'hwa_whee') { // 確保對應正確的 key
+                            board[targetIdx] = { type: 'epic', id: 'seventeen_card' }; 
+                            board[srcIdx] = null; 
+                            logMsg(`🎉 解鎖史詩卡片：17！`);
+                        } else {
+                            logMsg("這兩張 CP 無法產生特殊史詩卡！"); 
+                        }
                     } else {
-                        logMsg("這兩張 CP 無法產生特殊史詩卡！"); 
+                        logMsg("CP 角色不相符，無法合成！");
                     }
-                } 
-                else { 
-                    logMsg("CP 角色重複！無法合成完全體！"); 
                 }
-            } 
+            }
             else if (srcItem.type === 'final' && targetItem.type === 'final') {
                 board[targetIdx] = { type: 'epic', id: 'unknown_epic' };
                 board[srcIdx] = null;

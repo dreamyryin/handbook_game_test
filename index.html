@@ -679,9 +679,11 @@
 
                     <!-- 🌟 史詩召喚按鈕 (達 300 級顯示) -->
                     <div id="epic-summon-container" style="display: none; width: 100%;">
-                        <button id="epic-toggle-btn" class="btn-spawn" style="width: 100%; background: linear-gradient(45deg, #8e44ad, #9b59b6); box-shadow: 0 3px 0 #732d91; padding: 6px 0;" onclick="toggleEpicSummon()">🌟 史詩召喚</button>
+                        <div id="epic-toggle-btn" onclick="toggleEpicSummon()" style="display: flex; justify-content: space-between; align-items: center; background: #fff; padding: 6px 6px; border-radius: 4px; font-size: 0.7rem; font-weight: bold; border: 1px solid #ccc; box-sizing: border-box; cursor: pointer;">
+                            <span style="color: #2c3e50;">🌟 史詩召喚</span>
+                            <span style="font-size: 0.8rem;">📂</span>
+                        </div>
                     </div>
-
                     <!-- 🌟 史詩召喚浮動提交面板 (點擊展開) -->
                     <div id="epic-panel" style="display: none; position: absolute; bottom: 105%; right: 0; width: 240px; background: #222; border: 2px solid gold; padding: 10px; border-radius: 8px; z-index: 1000; box-shadow: 0 5px 15px rgba(0,0,0,0.5);">
                         <h3 style="margin: 0 0 5px 0; color: gold; font-size: 1rem; text-align: center;">史詩召喚</h3>
@@ -2046,6 +2048,46 @@
                 updateBoard();
                 return;
             }
+
+            const dropEpicSlot = elements.find(el => el.classList.contains('epic-slot') || el.classList.contains('epic-slot-single'));
+            if (dropEpicSlot && dragSourceIdx !== -1) {
+                const item = board[dragSourceIdx];
+                const targetSlotKey = dropEpicSlot.dataset.card;
+                
+                if (item) {
+                    let isValid = false;
+                    // 檢查卡片是否符合槽位要求
+                    // 槽位 'final_mamamoo' 需要 'final' 類型的卡片 (家族卡)
+                    if (targetSlotKey === 'final_mamamoo' && item.type === 'final') {
+                        isValid = true;
+                    } else if (item.type === 'epic' && item.id === targetSlotKey) {
+                        // 槽位 'mamamoo_plus'、'seventeen_card' 等需要對應的史詩卡
+                        isValid = true;
+                    }
+                    
+                    if (isValid) {
+                        // 1. 更新史詩卡片提交狀態
+                        epicSubmittedCards[targetSlotKey] = true;
+                        
+                        // 2. 更新槽位畫面 (顯示卡片圖片)
+                        dropEpicSlot.innerHTML = `<img src="images/${targetSlotKey}.jpg">`;
+                        
+                        // 3. 從盤面扣除卡片
+                        board[dragSourceIdx] = null;
+                        
+                        // 4. 存檔並刷新盤面
+                        saveLocalData();
+                        updateBoard();
+                        logMsg(`✨ 成功提交至史詩槽位！`);
+                    } else {
+                        logMsg("❌ 卡片不符！無法提交至此槽位。");
+                    }
+                }
+                dragSourceIdx = -1;
+                updateBoard();
+                return; // 成功丟入史詩槽位後，直接結束此函式，避免觸發後面的合成邏輯
+            }
+            
 
             // --- 📖 放入紀念冊邏輯 ---
             const dropMemorial = elements.find(el => el.id === 'btn-memorial');

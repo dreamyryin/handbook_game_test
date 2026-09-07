@@ -579,7 +579,12 @@
         }
         .epic-slot { width: 70px; height: 70px; }
         .epic-slot img, .epic-slot-single img {
-            width: 70px; height: 70px; transform: scale(2); transform-origin: center; position: absolute; z-index: 10; pointer-events: none;
+            width: 100%; 
+            height: 100%; 
+            object-fit: cover; 
+            position: absolute; 
+            z-index: 10; 
+            pointer-events: none;
         }
         
     </style>
@@ -690,7 +695,7 @@
                         <p style="font-size: 0.75rem; color: #ccc; margin: 0 0 10px 0; text-align: center;">拖曳 5 張終極卡片至槽位</p>
                         <div class="epic-slots-grid">
                             <div class="epic-slot" data-card="final_mamamoo" ondragover="allowDrop(event)" ondrop="dropEpicCard(event, 'final_mamamoo')">家族卡</div>
-                            <div class="epic-slot" data-card="mamamoo_plus" ondragover="allowDrop(event)" ondrop="dropEpicCard(event, 'mamamoo_plus')">M+</div>
+                            <div class="epic-slot" data-card="mamamoo_plus" ondragover="allowDrop(event)" ondrop="dropEpicCard(event, 'mamamoo_plus')">Mamamoo+</div>
                             <div class="epic-slot" data-card="seventeen_card" ondragover="allowDrop(event)" ondrop="dropEpicCard(event, 'seventeen_card')">17</div>
                             <div class="epic-slot" data-card="first_win" ondragover="allowDrop(event)" ondrop="dropEpicCard(event, 'first_win')">初一位</div>
                         </div>

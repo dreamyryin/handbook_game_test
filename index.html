@@ -2026,38 +2026,33 @@
             if (dropTrash && dragSourceIdx !== -1) {
                 const item = board[dragSourceIdx];
                 if (item) {
-                    let effectiveLevel = 0;
                     let itemName = "";
+                    let isEpic = (item.type === 'epic');
 
                     if (item.type === 'member') {
-                        effectiveLevel = item.level;
                         itemName = `Lv.${item.level} 卡片`;
                     } else if (item.type === 'cp') {
-                        effectiveLevel = 13;
-                        itemName = "CP (等同 Lv.13)";
+                        itemName = "CP 卡";
                     } else if (item.type === 'final') {
-                        effectiveLevel = 14;
-                        itemName = "完全體 (等同 Lv.14)";
+                        itemName = "完全體 (家族卡)";
+                    } else if (isEpic) {
+                        itemName = "史詩卡";
                     }
 
-                    if (effectiveLevel > 0) {
-                        if (effectiveLevel >= 7) {
-                            let confirmSell = confirm(`⚠️ 警告！你即將出售珍貴的【${itemName}】！\n確定要賣掉嗎？`);
-                            if (!confirmSell) {
-                                logMsg("✅ 已取消出售，卡片安全回到盤面！");
-                                dragSourceIdx = -1;
-                                updateBoard();
-                                return; 
-                            }
-                        }
+                    // 🌟 統一價格設定 (例如統一為 5000 金幣，你可以自己改數字)
+                    const uniformPrice = 5000;
 
-                        const earn = (Math.pow(2, effectiveLevel - 1) + effectiveLevel) * 10;
-                        coins += earn;
-                        board[dragSourceIdx] = null;
-                        logMsg(`🗑️ 出售成功！獲得 ${earn} 💰`);
-                    } else {
-                        logMsg(`⚠️ 這個特殊物件無法出售！`);
+                    let confirmSell = confirm(`⚠️ 警告！你即將出售【${itemName}】！\n售出可獲得 ${uniformPrice} 💰，確定要賣掉嗎？`);
+                    if (!confirmSell) {
+                        logMsg("✅ 已取消出售，卡片安全回到盤面！");
+                        dragSourceIdx = -1;
+                        updateBoard();
+                        return; 
                     }
+
+                    coins += uniformPrice;
+                    board[dragSourceIdx] = null;
+                    logMsg(`🗑️ 出售成功！獲得 ${uniformPrice} 💰`);
                 }
                 dragSourceIdx = -1;
                 updateBoard();

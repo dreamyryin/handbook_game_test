@@ -682,7 +682,7 @@
                         <input type="checkbox" id="advanced-spawn-toggle" style="width: 14px; height: 14px; cursor: pointer;" onchange="handleAdvancedToggle(this)">
                     </div>
 
-                    <!-- 🌟 史詩召喚按鈕 (達 300 級顯示) -->
+                    <!-- 🌟 史詩召喚開關 (達 300 級或解鎖後顯示) -->
                     <div id="epic-summon-container" style="display: none; width: 100%;">
                         <div id="epic-toggle-btn" onclick="toggleEpicSummon()" style="display: flex; justify-content: space-between; align-items: center; background: #fff; padding: 6px 6px; border-radius: 4px; font-size: 0.7rem; font-weight: bold; border: 1px solid #ccc; box-sizing: border-box; cursor: pointer;">
                             <span style="color: #2c3e50;">🌟 史詩召喚</span>
@@ -944,6 +944,9 @@
         
         let totalMerges = 0; // 🌟 我偷偷幫你加的總合成次數
 
+        let isAdvancedSpawnChecked = false;
+        let isEpicSpawnChecked = false;
+        
         let epicSummonUnlocked = false;
         let angryClicksRemaining = 100;
         let angryActive = false;
@@ -2360,8 +2363,8 @@
             let randNum = Math.random() * 100;
             
             // 🌟 檢查是否開啟「高級召喚」（必須等級 >= 40 且開關有打勾）
-            const isAdvancedOn = currentLevel >= 40 && document.getElementById('advanced-spawn-toggle') && document.getElementById('advanced-spawn-toggle').checked;
-            const isEpicOn = epicSummonUnlocked && document.getElementById('epic-spawn-toggle') && document.getElementById('epic-spawn-toggle').checked;
+            const isAdvancedOn = currentLevel >= 40 && isAdvancedSpawnChecked;
+            const isEpicOn = epicSummonUnlocked && isEpicSpawnChecked;
             
             if (currentLevel > 20) {
                 if (randNum < 40) spawnLevel = 1;
@@ -2941,14 +2944,18 @@
 
         // 🌟 高級與史詩召喚互斥控制 (不能同時打勾，但可同時不打勾)
         window.handleAdvancedToggle = function(checkbox) {
+            isAdvancedSpawnChecked = checkbox.checked;
             if (checkbox.checked) {
+                isEpicSpawnChecked = false;
                 let epicToggle = document.getElementById('epic-spawn-toggle');
                 if (epicToggle) epicToggle.checked = false;
             }
         };
 
         window.handleEpicToggle = function(checkbox) {
+            isEpicSpawnChecked = checkbox.checked;
             if (checkbox.checked) {
+                isAdvancedSpawnChecked = false;
                 let advToggle = document.getElementById('advanced-spawn-toggle');
                 if (advToggle) advToggle.checked = false;
             }
@@ -2964,12 +2971,15 @@
                     container.innerHTML = `
                         <div style="display: flex; justify-content: space-between; align-items: center; background: #fff; padding: 4px 6px; border-radius: 4px; font-size: 0.7rem; font-weight: bold; border: 1px solid #ccc; box-sizing: border-box;">
                             <span style="color: #2c3e50;">🌟 史詩召喚</span>
-                            <input type="checkbox" id="epic-spawn-toggle" style="width: 14px; height: 14px; cursor: pointer;" onchange="handleEpicToggle(this)">
+                            <input type="checkbox" id="epic-spawn-toggle" style="width: 14px; height: 14px; cursor: pointer;" ${isEpicSpawnChecked ? 'checked' : ''} onchange="handleEpicToggle(this)">
                         </div>
                     `;
                 } else {
                     container.innerHTML = `
-                        <button id="epic-toggle-btn" class="btn-spawn" style="width: 100%; background: linear-gradient(45deg, #8e44ad, #9b59b6); box-shadow: 0 3px 0 #732d91; padding: 6px 0;" onclick="toggleEpicSummon()">🌟 史詩召喚</button>
+                        <div id="epic-toggle-btn" onclick="toggleEpicSummon()" style="display: flex; justify-content: space-between; align-items: center; background: #fff; padding: 6px 6px; border-radius: 4px; font-size: 0.7rem; font-weight: bold; border: 1px solid #ccc; box-sizing: border-box; cursor: pointer;">
+                            <span style="color: #2c3e50;">🌟 史詩召喚</span>
+                            <span style="font-size: 0.8rem;">📂</span>
+                        </div>
                     `;
                 }
             } else {

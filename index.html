@@ -1426,12 +1426,24 @@
                     }
                 }
                 
-                // 🌟 讀取史詩召喚狀態
+                // 🌟 讀取史詩召喚狀態並加入防呆檢查
                 let epicSave = localStorage.getItem('mamamoo_epic_save');
                 if (epicSave) {
-                    let parsedEpic = JSON.parse(epicSave);
-                    epicSummonUnlocked = parsedEpic.unlocked || false;
-                    epicSubmittedCards = parsedEpic.cards || epicSubmittedCards;
+                    try {
+                        let parsedEpic = JSON.parse(epicSave);
+                        epicSummonUnlocked = parsedEpic.unlocked || false;
+                        epicSubmittedCards = parsedEpic.cards || epicSubmittedCards;
+                        
+                        // 🛡️ 安全防護：如果等級不到 300 級，絕對不准處於解鎖狀態！
+                        if (currentLevel < 300 && epicSummonUnlocked) {
+                            epicSummonUnlocked = false;
+                            isEpicSpawnChecked = false;
+                            epicSubmittedCards = { final_mamamoo: false, mamamoo_plus: false, seventeen_card: false, first_win: false, unknown_epic: false };
+                            console.log("🛡️ 已自動攔截並修正未滿 300 級卻異常解鎖的史詩召喚狀態");
+                        }
+                    } catch(e) {
+                        epicSummonUnlocked = false;
+                    }
                     
                     // 恢復已提交的卡片畫面
                     for (let key in epicSubmittedCards) {
@@ -2974,8 +2986,11 @@
             let container = document.getElementById('epic-summon-container');
             if (!container) return;
             
+            // 必須等級達到 300 級（或者你之後想用其他方式判定），才會讓這個區塊出現
             if (currentLevel >= 300 || epicSummonUnlocked) {
                 container.style.display = 'block';
+                
+                // 只有當「真正完成 5 張卡片提交解鎖 (`epicSummonUnlocked === true`)」時，才顯示勾選框
                 if (epicSummonUnlocked) {
                     container.innerHTML = `
                         <div style="display: flex; justify-content: space-between; align-items: center; background: #fff; padding: 4px 6px; border-radius: 4px; font-size: 0.7rem; font-weight: bold; border: 1px solid #ccc; box-sizing: border-box;">
@@ -2984,6 +2999,7 @@
                         </div>
                     `;
                 } else {
+                    // 尚未提交完成前，只顯示按鈕，點擊開啟提交面板，絕對不能打勾！
                     container.innerHTML = `
                         <div id="epic-toggle-btn" onclick="toggleEpicSummon()" style="display: flex; justify-content: space-between; align-items: center; background: #fff; padding: 6px 6px; border-radius: 4px; font-size: 0.7rem; font-weight: bold; border: 1px solid #ccc; box-sizing: border-box; cursor: pointer;">
                             <span style="color: #2c3e50;">🌟 史詩召喚</span>
@@ -2992,6 +3008,7 @@
                     `;
                 }
             } else {
+                // 等級小於 300 且未解鎖，直接隱藏
                 container.style.display = 'none';
             }
         }

@@ -679,7 +679,7 @@
                     
                     <div id="advanced-spawn-container" style="display: none; justify-content: space-between; align-items: center; background: #fff; padding: 4px 6px; border-radius: 4px; font-size: 0.7rem; font-weight: bold; border: 1px solid #ccc; box-sizing: border-box;">
                         <span style="color: #2c3e50;">✨ 高級召喚</span>
-                        <input type="checkbox" id="advanced-spawn-toggle" style="width: 14px; height: 14px; cursor: pointer;">
+                        <input type="checkbox" id="advanced-spawn-toggle" style="width: 14px; height: 14px; cursor: pointer;" onchange="handleAdvancedToggle(this)">
                     </div>
 
                     <!-- 🌟 史詩召喚按鈕 (達 300 級顯示) -->
@@ -1880,7 +1880,8 @@
             if (epicContainer) epicContainer.style.display = (currentLevel >= 300 || epicSummonUnlocked) ? 'block' : 'none';
             
             updateTaskUI(); 
-            updateAutoButtonUI(); 
+            updateAutoButtonUI();
+            updateEpicSummonUI();
             checkSkin2EasterEgg();
             saveLocalData(); 
         }
@@ -2360,7 +2361,8 @@
             
             // 🌟 檢查是否開啟「高級召喚」（必須等級 >= 40 且開關有打勾）
             const isAdvancedOn = currentLevel >= 40 && document.getElementById('advanced-spawn-toggle') && document.getElementById('advanced-spawn-toggle').checked;
-
+            const isEpicOn = epicSummonUnlocked && document.getElementById('epic-spawn-toggle') && document.getElementById('epic-spawn-toggle').checked;
+            
             if (currentLevel > 20) {
                 if (randNum < 40) spawnLevel = 1;
                 else if (randNum < 65) spawnLevel = 2;
@@ -2381,6 +2383,20 @@
             // 🌟 如果開啟高級召喚，直接將原本的等級平移 +2 (變成 Lv.3 ~ 8)
             if (isAdvancedOn) {
                 spawnLevel += 2;
+            }
+
+            // 🌟 史詩召喚：勾選時，直接隨機生成 Lv.9 ~ Lv.12 的高階卡片！
+            if (isEpicOn) {
+                let epicRand = Math.random() * 100;
+                if (epicRand < 50) {
+                    spawnLevel = 9;   // 50% 機率
+                } else if (epicRand < 80) {
+                    spawnLevel = 10;  // 30% 機率
+                } else if (epicRand < 95) {
+                    spawnLevel = 11;  // 15% 機率
+                } else {
+                    spawnLevel = 12;  // 5% 機率
+                }
             }
 
             board[randIdx] = { type: 'member', char: randChar, level: spawnLevel }; 
@@ -2914,9 +2930,51 @@
                 return;
             }
             epicSummonUnlocked = true;
-            alert("🎉 恭喜完成史詩召喚！憤怒媽木觸發機率已減半！");
+            alert("🎉 恭喜完成史詩召喚！");
             saveLocalData();
+            
+            // 🌟 關閉史詩面板並更新介面為勾選方塊
             document.getElementById('epic-panel').style.display = 'none';
+            updateEpicSummonUI();
+            updateBoard();
+        }
+
+        // 🌟 高級與史詩召喚互斥控制 (不能同時打勾，但可同時不打勾)
+        window.handleAdvancedToggle = function(checkbox) {
+            if (checkbox.checked) {
+                let epicToggle = document.getElementById('epic-spawn-toggle');
+                if (epicToggle) epicToggle.checked = false;
+            }
+        };
+
+        window.handleEpicToggle = function(checkbox) {
+            if (checkbox.checked) {
+                let advToggle = document.getElementById('advanced-spawn-toggle');
+                if (advToggle) advToggle.checked = false;
+            }
+        };
+
+        function updateEpicSummonUI() {
+            let container = document.getElementById('epic-summon-container');
+            if (!container) return;
+            
+            if (currentLevel >= 300 || epicSummonUnlocked) {
+                container.style.display = 'block';
+                if (epicSummonUnlocked) {
+                    container.innerHTML = `
+                        <div style="display: flex; justify-content: space-between; align-items: center; background: #fff; padding: 4px 6px; border-radius: 4px; font-size: 0.7rem; font-weight: bold; border: 1px solid #ccc; box-sizing: border-box;">
+                            <span style="color: #2c3e50;">🌟 史詩召喚</span>
+                            <input type="checkbox" id="epic-spawn-toggle" style="width: 14px; height: 14px; cursor: pointer;" onchange="handleEpicToggle(this)">
+                        </div>
+                    `;
+                } else {
+                    container.innerHTML = `
+                        <button id="epic-toggle-btn" class="btn-spawn" style="width: 100%; background: linear-gradient(45deg, #8e44ad, #9b59b6); box-shadow: 0 3px 0 #732d91; padding: 6px 0;" onclick="toggleEpicSummon()">🌟 史詩召喚</button>
+                    `;
+                }
+            } else {
+                container.style.display = 'none';
+            }
         }
 
         function triggerAngryMamamoo() {
@@ -2931,28 +2989,34 @@
             let startCol = Math.floor(Math.random() * (maxGridSize - 2));
             
             overlay.style.display = 'grid';
+            // 讓這個 3x3 遮罩正確覆蓋在盤面的指定位置上
             overlay.style.gridArea = `${startRow + 1} / ${startCol + 1} / span 3 / span 3`;
             
-            for (let i = 0; i < 9; i++) {
-                let imgIndex = Math.floor(Math.random() * 8) + 1;
-                let img = document.createElement('img');
-                img.src = `images/angry_${imgIndex}.jpg`;
-                img.className = 'angry-cell';
+            // 🌟 修正：我們只要一張大的或鋪滿背景的圖片/元素讓玩家點擊即可，
+            // 或是保留一個乾淨的 3x3 互動區塊 (這裡我們用隨機抽一張圖填滿這個 3x3 區域來點擊)
+            let randomImgIdx = Math.floor(Math.random() * 8) + 1;
+            let img = document.createElement('img');
+            img.src = `images/angry_${randomImgIdx}.jpg`;
+            img.className = 'angry-cell';
+            img.style.width = '100%';
+            img.style.height = '100%';
+            img.style.gridColumn = 'span 3';
+            img.style.gridRow = 'span 3';
+            
+            img.addEventListener('click', (e) => {
+                e.stopPropagation();
+                if (!angryActive) return;
+                angryClicksRemaining--;
+                document.getElementById('angry-counter-badge').innerText = angryClicksRemaining;
                 
-                img.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    if (!angryActive) return;
-                    angryClicksRemaining--;
-                    document.getElementById('angry-counter-badge').innerText = angryClicksRemaining;
-                    
-                    if (angryClicksRemaining <= 0) {
-                        angryActive = false;
-                        overlay.style.display = 'none';
-                        logMsg("🎉 成功擊退憤怒媽木！盤面已解除鎖定！");
-                    }
-                });
-                overlay.appendChild(img);
-            }
+                if (angryClicksRemaining <= 0) {
+                    angryActive = false;
+                    overlay.style.display = 'none';
+                    logMsg("🎉 成功擊退憤怒媽木！盤面已解除鎖定！");
+                }
+            });
+            
+            overlay.appendChild(img);
             logMsg("🚨 警告！憤怒媽木降臨，盤面已被鎖定！");
         }
         

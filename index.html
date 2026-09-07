@@ -2679,7 +2679,9 @@
                         let cpName = getCpImageName(item.char1, item.char2);
                         cell.innerHTML = `<img src="images/board/cp_${cpName}.jpg" onerror="this.src='';this.alt='CP'">`;
                     }
-                    else if (item.type === 'final') cell.innerHTML = `<img src="images/board/final_mamamoo.jpg" onerror="this.src='';this.alt='完全體'">`;
+                    else if (item.type === 'final') {
+                        cell.innerHTML = `<img src="images/board/final_mamamoo.jpg" onerror="this.src='';this.alt='完全體'">`;
+                    } 
                     else if (item.type === 'epic') {
                         cell.innerHTML = `<img src="images/${item.id}.jpg" onerror="this.src='';this.alt='${item.id}'">`;
                     }

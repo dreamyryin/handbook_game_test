@@ -1178,6 +1178,7 @@
                     if (item.type === 'member') bStr.push(`${idx}:m${charList.indexOf(item.char)}${item.level}`);
                     else if (item.type === 'cp') bStr.push(`${idx}:c${charList.indexOf(item.char1)}${charList.indexOf(item.char2)}`);
                     else if (item.type === 'final') bStr.push(`${idx}:f`);
+                    else if (item.type === 'epic') bStr.push(`${idx}:e${item.id}`);
                 });
                 const compactBoard = bStr.join('-'); 
 
@@ -1188,6 +1189,7 @@
                     if (item.type === 'member') mbStr.push(`${idx}:m${charList.indexOf(item.char)}${item.level}`);
                     else if (item.type === 'cp') mbStr.push(`${idx}:c${charList.indexOf(item.char1)}${charList.indexOf(item.char2)}`);
                     else if (item.type === 'final') mbStr.push(`${idx}:f`);
+                    else if (item.type === 'epic') mbStr.push(`${idx}:e${item.id}`);
                 });
                 const compactMemBoard = mbStr.join('-');
 
@@ -1302,6 +1304,8 @@
                                 tempBoard[bIdx] = { type: 'cp', char1: charList[parseInt(valStr[1])], char2: charList[parseInt(valStr[2])] };
                             } else if (valStr === 'f') {
                                 tempBoard[bIdx] = { type: 'final' };
+                            } else if (valStr.startsWith('e')) {
+                                tempBoard[bIdx] = { type: 'epic', id: valStr.substring(1) };
                             }
                         }
                     });
@@ -1366,6 +1370,8 @@
                                 tempMemBoard[bIdx] = { type: 'cp', char1: charList[parseInt(valStr[1])], char2: charList[parseInt(valStr[2])] };
                             } else if (valStr === 'f') {
                                 tempMemBoard[bIdx] = { type: 'final' };
+                            } else if (valStr.startsWith('e')) {
+                                tempMemBoard[bIdx] = { type: 'epic', id: valStr.substring(1) };
                             }
                         }
                     });
@@ -1838,6 +1844,8 @@
                             <img src="images/board/${item.id}.jpg" onerror="this.src='';this.alt='Boss'">
                             <div class="badge-overlay" style="font-size: 14px; bottom: 5px; right: 5px; background: rgba(231, 76, 60, 0.9);">HP: ${item.hp}</div>
                         `;
+                    } else if (item.type === 'epic') {
+                        cell.innerHTML = `<img src="images/${item.id}.jpg" onerror="this.src='';this.alt='${item.id}'">`;
                     }
                 }
             });
@@ -2131,8 +2139,42 @@
                 board[targetIdx] = { type: 'cp', char1: srcItem.char, char2: targetItem.char }; board[srcIdx] = null; logMsg("解鎖 CP！");
             } else if (srcItem.type === 'cp' && targetItem.type === 'cp') {
                 const charsInvolved = new Set([srcItem.char1, srcItem.char2, targetItem.char1, targetItem.char2]);
-                if (charsInvolved.size === 4) { board[targetIdx] = { type: 'final' }; board[srcIdx] = null; logMsg("🎉 MAMAMOO 完全體！"); } 
-                else { logMsg("CP 角色重複！"); }
+                
+                if (charsInvolved.size === 4) { 
+                    board[targetIdx] = { type: 'final' }; 
+                    board[srcIdx] = null; 
+                    logMsg("🎉 合成出 MAMAMOO 完全體 (家族卡)！"); 
+                } 
+                else if (srcItem.char1 === targetItem.char1 && srcItem.char2 === targetItem.char2) {
+                    let cpPair = [srcItem.char1, srcItem.char2].sort().join('_');
+                    if (cpPair === 'moon_solar') {
+                        board[targetIdx] = { type: 'epic', id: 'mamamoo_plus' }; 
+                        board[srcIdx] = null; 
+                        logMsg(`🎉 解鎖史詩卡片：Mamamoo+！`);
+                    } else if (cpPair === 'hwa_whee') {
+                        board[targetIdx] = { type: 'epic', id: 'seventeen_card' }; 
+                        board[srcIdx] = null; 
+                        logMsg(`🎉 解鎖史詩卡片：17！`);
+                    } else {
+                        logMsg("這兩張 CP 無法產生特殊史詩卡！"); 
+                    }
+                } 
+                else { 
+                    logMsg("CP 角色重複！無法合成完全體！"); 
+                }
+            } 
+            else if (srcItem.type === 'final' && targetItem.type === 'final') {
+                board[targetIdx] = { type: 'epic', id: 'unknown_epic' };
+                board[srcIdx] = null;
+                logMsg("🎉 解鎖史詩卡片：未知！");
+            }
+            else if (
+                (srcItem.type === 'final' && targetItem.type === 'member' && targetItem.level === 1) ||
+                (srcItem.type === 'member' && srcItem.level === 1 && targetItem.type === 'final')
+            ) {
+                board[targetIdx] = { type: 'epic', id: 'first_win' };
+                board[srcIdx] = null;
+                logMsg("🎉 解鎖史詩卡片：初一位！");
             }
             updateBoard();
         }
@@ -2638,6 +2680,9 @@
                         cell.innerHTML = `<img src="images/board/cp_${cpName}.jpg" onerror="this.src='';this.alt='CP'">`;
                     }
                     else if (item.type === 'final') cell.innerHTML = `<img src="images/board/final_mamamoo.jpg" onerror="this.src='';this.alt='完全體'">`;
+                    } else if (item.type === 'epic') {
+                        cell.innerHTML = `<img src="images/${item.id}.jpg" onerror="this.src='';this.alt='${item.id}'">`;
+}
                 }
             });
         }
@@ -2696,6 +2741,33 @@
             }
 
             const elements = document.elementsFromPoint(e.clientX, e.clientY);
+
+            const dropEpicSlot = elements.find(el => el.classList.contains('epic-slot') || el.classList.contains('epic-slot-single'));
+            if (dropEpicSlot && dragSourceIdx !== -1) {
+                const item = board[dragSourceIdx];
+                const targetSlotKey = dropEpicSlot.dataset.card;
+                
+                if (item) {
+                    let isValid = false;
+                    if (targetSlotKey === 'final_mamamoo' && item.type === 'final') isValid = true;
+                    else if (item.type === 'epic' && item.id === targetSlotKey) isValid = true;
+                    
+                    if (isValid) {
+                        epicSubmittedCards[targetSlotKey] = true;
+                        dropEpicSlot.innerHTML = `<img src="images/${targetSlotKey}.jpg">`;
+                        board[dragSourceIdx] = null;
+                        saveLocalData();
+                        updateBoard();
+                        logMsg(`✨ 成功提交至槽位！`);
+                    } else {
+                        logMsg("❌ 卡片不符！無法提交至此槽位。");
+                    }
+                }
+                dragSourceIdx = -1;
+                updateBoard();
+                return; // 成功丟入史詩槽位後，直接結束此函式
+            }
+            
             const dropTarget = elements.find(el => el.classList.contains('cell') && el.dataset.memindex);
 
             if (dropTarget) {

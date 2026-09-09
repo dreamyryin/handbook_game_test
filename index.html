@@ -171,16 +171,14 @@
                 const docSnap = await getDoc(docRef);
 
                 if (docSnap.exists()) {
+                    // 🌟 狀況 A：雲端有這個帳號的存檔，直接下載覆蓋本地
                     const data = docSnap.data();
                     if (data.saveData) {
                         localStorage.setItem('mamamoo_save', data.saveData);
                     }
-                    
-                    // 🌟 這裡！把雲端的圖鑑拉下來，塞回 LocalStorage！
                     if (data.galleryData) {
                         localStorage.setItem('mamamoo_gallery', data.galleryData);
                     }
-                    
                     if (data.playerCreatedAt) {
                         localStorage.setItem('player_created_at', data.playerCreatedAt);
                     }
@@ -194,8 +192,34 @@
                     updateBoard();
                     logMsg("☁️ 成功從雲端同步遊戲與圖鑑進度！");
                 } else {
-                    window.triggerAutoCloudSave();
-                    logMsg("☁️ 已為您在雲端建立全新存檔！");
+                    // 🌟 狀況 B：雲端完全沒有這個帳號的存檔（新帳號或首次登入）
+                    const localSave = localStorage.getItem('mamamoo_save');
+                    
+                    if (localSave) {
+                        // 詢問玩家要把本機進度帶過去，還是要開新局
+                        let uploadChoice = confirm("☁️ 偵測到此 Google 帳號尚無雲端存檔。\n\n[確定] 將目前此裝置的遊戲進度上傳至此 Google 帳號。\n[取消] 清空畫面，以此 Google 帳號開新局。");
+                        
+                        if (uploadChoice) {
+                            window.triggerAutoCloudSave();
+                            logMsg("☁️ 已將本機進度綁定至此新帳號！");
+                        } else {
+                            // 清空本機並建立新局
+                            localStorage.removeItem('mamamoo_save');
+                            localStorage.removeItem('mamamoo_gallery');
+                            coins = 0;
+                            currentLevel = 1;
+                            board = new Array(BOARD_SIZE).fill(null);
+                            initGalleryData();
+                            updateBoard();
+                            updateShopUI();
+                            updateGalleryUI();
+                            window.triggerAutoCloudSave();
+                            logMsg("☁️ 已為您在此帳號建立全新存檔！");
+                        }
+                    } else {
+                        window.triggerAutoCloudSave();
+                        logMsg("☁️ 已為您在雲端建立全新存檔！");
+                    }
                 }
             } catch (e) {
                 console.error("Cloud load failed", e);

@@ -203,12 +203,12 @@
                             window.triggerAutoCloudSave();
                             logMsg("☁️ 已將本機進度綁定至此新帳號！");
                         } else {
-                            // 清空本機並建立新局
-                            // 玩家選擇開新局，徹底清空所有本機暫存與遊戲狀態
+                            // 1. 清除所有本機暫存
                             localStorage.removeItem('mamamoo_save');
                             localStorage.removeItem('mamamoo_gallery');
                             localStorage.removeItem('mamamoo_epic_save');
                             
+                            // 2. 徹底重置所有全域變數
                             coins = 0;
                             currentLevel = 1;
                             tears = 0;
@@ -224,17 +224,37 @@
                             claimedSets.clear();
                             
                             galleryData = [];
-                            initGalleryData(); // 重新初始化圖鑑解鎖狀態為全部未解鎖
-                            
+                            initGalleryData(); 
                             currentMissionData = generateMissionsForLevel(1);
                             
+                            // 3. 立即刷新所有介面
                             updateBoard();
                             updateShopUI();
                             updateGalleryUI();
                             updateMemorialBoard();
                             
-                            window.triggerAutoCloudSave();
-                            logMsg("☁️ 已為您在此帳號建立全新存檔！");
+                            // 4. 強制取消任何殘留的自動存檔計時器，避免覆蓋
+                            if (cloudSyncTimer) clearTimeout(cloudSyncTimer);
+
+                            // 5. 立刻把「全新歸零的狀態」寫入雲端（不透過 1.5 秒延遲，直接同步）
+                            try {
+                                const rawSaveStr = localStorage.getItem('mamamoo_save') || "0|0,0,0|0|0|1|||0|0|0||1";
+                                const galStr = localStorage.getItem('mamamoo_gallery') || "";
+                                const customName = localStorage.getItem('mamamoo_nickname') || user.displayName || "匿名木木";
+
+                                await setDoc(doc(db, "game_saves", user.uid), {
+                                    saveData: rawSaveStr,
+                                    galleryData: galStr,
+                                    playerCreatedAt: localStorage.getItem('player_created_at') || String(Date.now()),
+                                    updatedAt: Date.now(),
+                                    level: 1,
+                                    coins: 0,
+                                    displayName: customName
+                                });
+                                logMsg("☁️ 已為您在此帳號建立全新存檔！");
+                            } catch (e) {
+                                console.error("New save sync failed", e);
+                            }
                         }
                     } else {
                         window.triggerAutoCloudSave();

@@ -204,15 +204,35 @@
                             logMsg("☁️ 已將本機進度綁定至此新帳號！");
                         } else {
                             // 清空本機並建立新局
+                            // 玩家選擇開新局，徹底清空所有本機暫存與遊戲狀態
                             localStorage.removeItem('mamamoo_save');
                             localStorage.removeItem('mamamoo_gallery');
+                            localStorage.removeItem('mamamoo_epic_save');
+                            
                             coins = 0;
                             currentLevel = 1;
+                            tears = 0;
+                            choiceCards = 0;
+                            inventory = { small: 0, large: 0, surprise: 0 };
                             board = new Array(BOARD_SIZE).fill(null);
-                            initGalleryData();
+                            memorialBoard = new Array(BOARD_SIZE).fill(null);
+                            isPermanentAutoMerge = false;
+                            autoMergeEndTime = 0;
+                            epicSummonUnlocked = false;
+                            isEpicSpawnChecked = false;
+                            isAdvancedSpawnChecked = false;
+                            claimedSets.clear();
+                            
+                            galleryData = [];
+                            initGalleryData(); // 重新初始化圖鑑解鎖狀態為全部未解鎖
+                            
+                            currentMissionData = generateMissionsForLevel(1);
+                            
                             updateBoard();
                             updateShopUI();
                             updateGalleryUI();
+                            updateMemorialBoard();
+                            
                             window.triggerAutoCloudSave();
                             logMsg("☁️ 已為您在此帳號建立全新存檔！");
                         }
